@@ -102,3 +102,7 @@ typings/
 
 # TernJS port file
 .tern-port
+
+# IDE and development tool directories
+.vs/
+.workbuddy/
