@@ -83,25 +83,25 @@ function Wizard(props) {
 		<div class="rnp-compatibility-check">
 			<div class="rnp-compatibility-check__title">
 				<h2>兼容性检查</h2>
-				<h3>Refined Now Playing</h3>
+				<h3>Refined Now Playing Next</h3>
 			</div>
 			<div class="rnp-compatibility-check__content">
-				<p>欢迎使用 Refined Now Playing。</p>
+				<p>欢迎使用 Refined Now Playing Next。</p>
 				<p>在开始之前，请依照本提示检查和更正兼容性问题，否则可能会遇到渲染错误、性能降低、功能失效等问题。</p>
 				{isNCMOutdated && 
 					<>
 						<h1>网易云版本</h1>
-						<p>Refined Now Playing 现在只支持网易云音乐 3.0.0 及以上版本。</p>
-						<p className="warning">检测到您的网易云版本过旧，将会导致 Refined Now Playing 无法正常工作。请更新网易云。</p>
+						<p>Refined Now Playing Next 现在只支持网易云音乐 3.1.11 及以上版本。</p>
+						<p className="warning">检测到您的网易云版本过旧，将会导致 Refined Now Playing Next 无法正常工作。请更新网易云。</p>
 						<Button text="下载新版网易云" disabledAfterDone={false} onClick={async() => {
 							await betterncm.app.exec("https://music.163.com/#/download");
 						}}/>
 					</>
 				}
 				<h1>BetterNCM 版本</h1>
-				<p>请尽可能将 BetterNCM 更新到最新版本，BetterNCM 版本过低会导致 Refined Now Playing 插件无法运行。</p>
+				<p>请尽可能将 BetterNCM 更新到最新版本，BetterNCM 版本过低会导致 Refined Now Playing Next 插件无法运行。</p>
 				<p>目前推荐使用最新稳定版。如果版本过旧，请在 BetterNCM Installer 中，点击 “重装/更新” 以更新最新版。</p>
-				{isBetterNCMOutdated && <p className="warning">检测到您的 BetterNCM 版本过旧，可能会导致 Refined Now Playing 无法正常工作。请更新 BetterNCM。</p>}
+				{isBetterNCMOutdated && <p className="warning"> 检测到您的 BetterNCM 版本过旧，可能会导致 Refined Now Playing Next 无法正常工作。请更新 BetterNCM。</p>}
 				{!isBetterNCMOutdated && <p className="pass">检测到您的 BetterNCM 版本没有过旧。但如果仍然出现问题，请尝试更新 BetterNCM。</p>}
 				<Button text="下载 BetterNCM Installer" disabledAfterDone={false} onClick={async() => {
 					await betterncm.app.exec("https://github.com/MicroCBer/BetterNCM-Installer/releases");
@@ -110,7 +110,7 @@ function Wizard(props) {
 				<p>如果 GPU 加速被禁用，可能会导致：卡顿、模糊背景渲染错误、帧数低、CPU 占用高等问题。</p>
 				{
 					isGPUDisabled ? (
-						<p className="warning">检测到您的 GPU 加速已被禁用，可能会导致 Refined Now Playing 无法正常工作。请启用 GPU 加速。</p>
+						<p className="warning">检测到您的 GPU 加速已被禁用，可能会导致 Refined Now Playing Next 无法正常工作。请启用 GPU 加速。</p>
 					) : (
 						<p className="pass">未检测到您的 GPU 加速被禁用。但如果仍旧出现以上问题，请尝试使用以下的按钮启用 GPU 加速。</p>
 					)
@@ -145,7 +145,7 @@ function Wizard(props) {
 				<h1>性能</h1>
 				{
 					<>
-						<p>Refined Now Playing 的某些效果依赖 GPU 渲染，如果设备 GPU 性能较差，会造成低帧率、高占用等问题。</p>
+						<p>Refined Now Playing Next 的某些效果依赖 GPU 渲染，如果设备 GPU 性能较差，会造成低帧率、高占用等问题。</p>
 						<p>如果已完成上述步骤，<b>但仍然出现性能问题，请尝试在播放页面右上角菜单中，检查以下选项：</b></p>
 						<ul>
 							<li><b>打开 "静态流体" 开关，这将大幅减少 GPU 占用</b></li>
@@ -167,7 +167,7 @@ function Wizard(props) {
 						</>
 					) : (
 						<>
-							<p className="pass">🎉 您的 Refined Now Playing 已经可以正常工作了。</p>
+								<p className="pass">🎉 您的 Refined Now Playing Next 已经可以正常工作了。</p>
 							<p>点击下方按钮关闭本引导。如果需要，您可以随时可以在插件设置中调出此页面。</p>
 							<p><b>如果不显示歌词，请重启一次网易云。（退出并再次打开）</b></p>
 						</>
@@ -246,7 +246,7 @@ function HijackFailureNotice() {
 		<div className="hijack-failure-notice">
 			<div className='info'>
 				<div>Hijack 错误</div>
-				<div>Refined Now Playing 无法正常工作，可能导致歌词无法显示。<strong>请重启网易云以修复此问题。</strong></div>
+				<div>Refined Now Playing Next 无法正常工作，可能导致歌词无法显示。<strong>请重启网易云以修复此问题。</strong></div>
 			</div>
 			<div className="action">
 				<button onClick={() => {
