@@ -10,11 +10,11 @@
 
 # 效果
 
-https://user-images.githubusercontent.com/23134847/216518149-9d85c6a6-4ad5-4c2c-9843-a2f65f610fd0.mp4
+https://private-user-images.githubusercontent.com/109349443/583420240-2b8182ff-7faa-455d-9466-bd1e295ddb16.mp4
 
-![screenshot1](screenshot1.jpg)
+![screenshot1](screenshot1.png)
 
-![screenshot2](screenshot3.jpg)
+![screenshot2](screenshot2.png)
 
 # 感谢
 本项目在开发过程中参考和使用了以下优秀的开源项目
