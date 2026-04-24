@@ -1,0 +1,323 @@
+<input id="rnp-settings" class="rnp-settings open" type="checkbox"></input>
+<div id="rnp-settings-menu" class="rnp-settings-menu">
+	<div class="rnp-settings-menu-tabs">
+		<div class="rnp-settings-menu-tab active" data-tab="appearance">外观</div>
+		<div class="rnp-settings-menu-tab" data-tab="cover">封面</div>
+		<div class="rnp-settings-menu-tab" data-tab="background">背景</div>
+		<div class="rnp-settings-menu-tab" data-tab="lyric">歌词</div>
+		<div class="rnp-settings-menu-tab" data-tab="font">字体</div>
+		<div class="rnp-settings-menu-tab" data-tab="misc">杂项</div>
+		<div class="rnp-settings-menu-tab" data-tab="experimental">实验</div>
+		<div class="rnp-settings-menu-tab" data-tab="about">关于</div>
+	</div>
+	<div class="rnp-settings-menu-inner">
+		<div class="rnp-group" data-tab="appearance">
+			<div class="rnp-group-title">外观</div>
+			<div class="rnp-select-group-wrapper">
+				<label for="exclusive-modes" class="rnp-select-group-label">显示</label>
+				<div class="rnp-select-group" id="exclusive-modes">
+					<button class="rnp-select-group-btn selected" value="all">全部</button>
+					<button class="rnp-select-group-btn" value="lyric-only">仅歌词</button>
+					<button class="rnp-select-group-btn" value="song-info-only">仅封面</button>
+				</div>
+			</div>
+			<div class="rnp-checkbox-wrapper center-lyric-control" style="--estimated-height: 20px;">
+				<input id="center-lyric" type="checkbox" class="rnp-checkbox">
+				<label for="center-lyric" class="rnp-checkbox-label">歌词居中</label>
+			</div>
+			<div class="rnp-checkbox-wrapper auto-hide-mini-song-info-control" style="--estimated-height: 20px;">
+				<input id="auto-hide-mini-song-info" type="checkbox" class="rnp-checkbox">
+				<label for="auto-hide-mini-song-info" class="rnp-checkbox-label">自动隐藏迷你歌曲信息</label>
+			</div>
+			<div class="rnp-select-group-wrapper">
+				<label for="color-scheme" class="rnp-select-group-label">颜色模式</label>
+				<div class="rnp-select-group" id="color-scheme">
+					<button class="rnp-select-group-btn" value="dark">暗色</button>
+					<button class="rnp-select-group-btn" value="light">亮色</button>
+					<button class="rnp-select-group-btn selected" value="auto">系统</button>
+				</div>
+			</div>
+			<div class="rnp-select-group-wrapper">
+				<label for="accent-color-variant" class="rnp-select-group-label">沉浸主题色</label>
+				<div class="rnp-select-group" id="accent-color-variant">
+					<button class="rnp-select-group-btn selected" value="off">关</button>
+					<button class="rnp-select-group-btn selected" value="primary">鲜艳</button>
+					<button class="rnp-select-group-btn" value="secondary">柔和</button>
+					<button class="rnp-select-group-btn" value="tertiary">偏色</button>
+				</div>
+			</div>
+			<div class="rnp-checkbox-wrapper">
+				<input id="text-shadow" type="checkbox" class="rnp-checkbox">
+				<label for="text-shadow" class="rnp-checkbox-label">文字阴影</label>
+			</div>
+			<div class="rnp-checkbox-wrapper">
+				<input id="text-glow" type="checkbox" class="rnp-checkbox">
+				<label for="text-glow" class="rnp-checkbox-label">文字辉光</label>
+			</div>
+			<div class="rnp-checkbox-wrapper">
+				<input id="enable-progressbar-preview" type="checkbox" class="rnp-checkbox">
+				<label for="enable-progressbar-preview" class="rnp-checkbox-label">进度条悬停预览</label>
+			</div>
+			<span class="rnp-checkbox-note">鼠标悬停在进度条上时显示对应歌词</span>
+			<div class="rnp-checkbox-wrapper">
+				<input id="hide-player-controls" type="checkbox" class="rnp-checkbox">
+				<label for="hide-player-controls" class="rnp-checkbox-label">隐藏播放控件</label>
+			</div>
+		</div>
+
+		<div class="rnp-group" data-tab="cover">
+			<div class="rnp-group-title">封面</div>
+			<div class="rnp-select-group-wrapper">
+				<label for="horizontal-align" class="rnp-select-group-label">封面水平对齐</label>
+				<div class="rnp-select-group" id="horizontal-align">
+					<button class="rnp-select-group-btn selected" value="left">居左</button>
+					<button class="rnp-select-group-btn" value="center">居中</button>
+				</div>
+			</div>
+			<div class="rnp-select-group-wrapper">
+				<label for="vertical-align" class="rnp-select-group-label">封面垂直对齐</label>
+				<div class="rnp-select-group" id="vertical-align">
+					<button class="rnp-select-group-btn selected" value="bottom">居下</button>
+					<button class="rnp-select-group-btn" value="middle">居中</button>
+				</div>
+			</div>
+			<div class="rnp-checkbox-wrapper">
+				<input id="rectangle-cover" type="checkbox" class="rnp-checkbox">
+				<label for="rectangle-cover" class="rnp-checkbox-label">方形专辑封面</label>
+			</div>
+			<div class="rnp-slider-wrapper album-size with-ticks">
+				<label for="album-size" class="rnp-slider-label">专辑封面清晰度<button class="rnp-slider-reset"></button></label>
+				<input id="album-size" type="range" class="rnp-slider" min="200" max="800" value="200" default="200" step="200">
+				<div class="rnp-slider-ticks">
+					<div class="rnp-slider-tick">200</div>
+					<div class="rnp-slider-tick">400</div>
+					<div class="rnp-slider-tick">600</div>
+					<div class="rnp-slider-tick">800</div>
+				</div>
+			</div>
+			<span class="rnp-slider-note">可能带来更慢的加载速度</span>
+			<div class="rnp-checkbox-wrapper">
+				<input id="cover-blurry-shadow" type="checkbox" class="rnp-checkbox">
+				<label for="cover-blurry-shadow" class="rnp-checkbox-label">封面弥散阴影</label>
+			</div>
+		</div>
+
+		<div class="rnp-group" data-tab="background">
+			<div class="rnp-group-title">背景</div>
+			<div class="rnp-select-group-wrapper">
+				<label for="bg-type" class="rnp-select-group-label">类型</label>
+				<div class="rnp-select-group" id="background-type">
+					<button class="rnp-select-group-btn selected" value="fluid">流体</button>
+					<button class="rnp-select-group-btn" value="blur">模糊</button>
+					<button class="rnp-select-group-btn" value="gradient">渐变</button>
+					<button class="rnp-select-group-btn" value="solid">纯色</button>
+					<button class="rnp-select-group-btn" value="none">无</button>
+				</div>
+			</div>
+			<div class="rnp-checkbox-wrapper static-fluid" style="--estimated-height: 20px;">
+				<input id="static-fluid" type="checkbox" class="rnp-checkbox">
+				<label for="static-fluid" class="rnp-checkbox-label">静态流体</label>
+			</div>
+			<span class="rnp-checkbox-note" style="--estimated-height: 15px;">减少流体背景的性能开销</span>
+			<div class="rnp-checkbox-wrapper gradient-bg-dynamic" style="--estimated-height: 20px;">
+				<input id="gradient-bg-dynamic" type="checkbox" class="rnp-checkbox">
+				<label for="gradient-bg-dynamic" class="rnp-checkbox-label">动态渐变</label>
+			</div>
+			<div class="rnp-slider-wrapper bg-blur">
+				<label for="bg-blur" class="rnp-slider-label">模糊<button class="rnp-slider-reset"></button></label>
+				<input id="bg-blur" type="range" class="rnp-slider" min="0" max="128" value="90" default="90">
+			</div>
+			<div class="rnp-slider-wrapper bg-dim" style="transition: all 0s;">
+				<label for="bg-dim" class="rnp-slider-label">暗化<button class="rnp-slider-reset"></button></label>
+				<input id="bg-dim" type="range" class="rnp-slider" min="0" max="100" value="55" default="55">
+			</div>
+			<div class="rnp-slider-wrapper bg-dim-for-gradient-bg" style="transition: all 0s;"> <!-- 渐变背景 独立的暗化值 -->
+				<label for="bg-dim-for-gradient-bg" class="rnp-slider-label">暗化<button class="rnp-slider-reset"></button></label>
+				<input id="bg-dim-for-gradient-bg" type="range" class="rnp-slider" min="0" max="100" value="45" default="45">
+			</div>
+			<div class="rnp-slider-wrapper bg-dim-for-fluid-bg" style="transition: all 0s;"> <!-- 流体背景 独立的暗化值 -->
+				<label for="bg-dim-for-fluid-bg" class="rnp-slider-label">暗化<button class="rnp-slider-reset"></button></label>
+				<input id="bg-dim-for-fluid-bg" type="range" class="rnp-slider" min="0" max="90" value="30" default="30">
+			</div>
+			<div class="rnp-slider-wrapper bg-blur-for-none-bg-mask"> <!-- 无背景 遮罩 独立的模糊值 -->
+				<label for="bg-blur-for-none-bg-mask" class="rnp-slider-label">遮罩模糊<button class="rnp-slider-reset"></button></label>
+				<input id="bg-blur-for-none-bg-mask" type="range" class="rnp-slider" min="0" max="100" value="0" default="0">
+			</div>
+			<div class="rnp-slider-wrapper bg-dim-for-none-bg-mask" style="transition: all 0s;"> <!-- 无背景 遮罩 独立的暗化值 -->
+				<label for="bg-dim-for-none-bg-mask" class="rnp-slider-label">遮罩暗化<button class="rnp-slider-reset"></button></label>
+				<input id="bg-dim-for-none-bg-mask" type="range" class="rnp-slider" min="0" max="90" value="0" default="0">
+			</div>
+		</div>
+
+		
+		<div class="rnp-group" data-tab="lyric">
+			<div class="rnp-group-title">歌词</div>
+			<div class="rnp-checkbox-wrapper original-lyric-bold">
+				<input id="original-lyric-bold" type="checkbox" class="rnp-checkbox">
+				<label for="original-lyric-bold" class="rnp-checkbox-label">加粗首行</label>
+			</div>
+			<div class="rnp-slider-wrapper" style="margin-bottom: 10px;">
+				<label for="lyric-font-size" class="rnp-slider-label">字体大小<button class="rnp-slider-reset"></button></label>
+				<input id="lyric-font-size" type="range" class="rnp-slider" min="16" max="64" step="1" value="32" default="32">
+			</div>
+			<div class="rnp-slider-wrapper" style="transform: scale(0.9); transform-origin: right; margin-bottom: 10px;">
+				<label for="lyric-romaji-size-em" class="rnp-slider-label">罗马音<button class="rnp-slider-reset"></button></label>
+				<input id="lyric-romaji-size-em" type="range" class="rnp-slider" min="0.3" max="1.5" step="0.05" value="0.6" default="0.6">
+			</div>
+			<div class="rnp-slider-wrapper" style="transform: scale(0.9); transform-origin: right;">
+				<label for="lyric-translation-size-em" class="rnp-slider-label">翻译<button class="rnp-slider-reset"></button></label>
+				<input id="lyric-translation-size-em" type="range" class="rnp-slider" min="0.3" max="1.5" step="0.05" value="1" default="1">
+			</div>
+			<div class="rnp-checkbox-wrapper lyric-fade">
+				<input id="lyric-fade" type="checkbox" class="rnp-checkbox">
+				<label for="lyric-fade" class="rnp-checkbox-label">歌词渐隐</label>
+			</div>
+			<div class="rnp-checkbox-wrapper">
+				<input id="lyric-zoom" type="checkbox" class="rnp-checkbox">
+				<label for="lyric-zoom" class="rnp-checkbox-label">歌词缩放</label>
+			</div>
+			<div class="rnp-checkbox-wrapper">
+				<input id="lyric-blur" type="checkbox" class="rnp-checkbox">
+				<label for="lyric-blur" class="rnp-checkbox-label">歌词模糊</label>
+			</div>
+			<div class="rnp-checkbox-wrapper">
+				<input id="lyric-rotate" type="checkbox" class="rnp-checkbox">
+				<label for="lyric-rotate" class="rnp-checkbox-label">歌词旋转</label>
+			</div>
+			<div class="rnp-slider-wrapper rotate-curvature">
+				<label for="rotate-curvature" class="rnp-slider-label">曲率<button class="rnp-slider-reset"></button></label>
+				<input id="rotate-curvature" type="range" class="rnp-slider" min="10" max="80" value="30" default="30">
+			</div>
+			<div class="rnp-select-group-wrapper">
+				<label for="karaoke-animation" class="rnp-select-group-label">逐字动画</label>
+				<div class="rnp-select-group" id="karaoke-animation">
+					<button class="rnp-select-group-btn selected" value="float">上浮</button>
+					<button class="rnp-select-group-btn" value="slide">滑动</button>
+				</div>
+			</div>
+			<div class="rnp-select-group-wrapper">
+				<label for="current-lyric-alignment-percentage" class="rnp-select-group-label">当前歌词位置</label>
+				<div class="rnp-select-group" id="current-lyric-alignment-percentage">
+					<button class="rnp-select-group-btn" value="30">居上</button>
+					<button class="rnp-select-group-btn selected" value="50">居中</button>
+				</div>
+			</div>
+			<div class="rnp-checkbox-wrapper">
+				<input id="lyric-stagger" type="checkbox" class="rnp-checkbox">
+				<label for="lyric-stagger" class="rnp-checkbox-label">错位滚动动画</label>
+			</div>
+			<div class="rnp-select-group-wrapper">
+				<label for="lyric-animation-timing" class="rnp-select-group-label">动画曲线</label>
+				<div class="rnp-select-group" id="lyric-animation-timing">
+					<button class="rnp-select-group-btn selected" value="smooth">平滑</button>
+					<button class="rnp-select-group-btn" value="sharp">急促</button>
+					<button class="rnp-select-group-btn" value="lazy">温和</button>
+					<button class="rnp-select-group-btn" value="easeout">缓出</button>
+				</div>
+			</div>
+			<div class="rnp-checkbox-wrapper">
+				<input id="lyric-glow" type="checkbox" class="rnp-checkbox">
+				<label for="lyric-glow" class="rnp-checkbox-label">长音发光动画</label>
+			</div>
+			<span class="rnp-checkbox-note">在句末长音单词播放时显示发光动画</span>
+			<div class="rnp-lyric-offset">
+				<div>
+					<label class="rnp-checkbox-label">全局偏移</label>
+					<button class="rnp-slider-reset" id="rnp-lyric-offset-reset"></button>
+					<div style="flex:1;"></div>
+					<label id="rnp-lyric-offset-number">0s</label>
+				</div>
+				<div class="rnp-slider-wrapper">
+					<input id="rnp-lyric-offset-slider" type="range" class="rnp-slider" min="-10000" max="10000" step="100" value="0" default="0">
+				</div>
+				<div>
+					<button id="rnp-lyric-offset-sub">-</button>
+					<label id="rnp-lyric-offset-tip">未设置</label>
+					<button id="rnp-lyric-offset-add">+</button>
+				</div>
+			</div>
+			<div class="rnp-select-group-wrapper">
+				<label for="lyric-contributors-display" class="rnp-select-group-label">歌词贡献者显示</label>
+				<div class="rnp-select-group" id="lyric-contributors-display">
+					<button class="rnp-select-group-btn" value="show">总是</button>
+					<button class="rnp-select-group-btn selected" value="hover">鼠标移上</button>
+					<button class="rnp-select-group-btn" value="hide">隐藏</button>
+				</div>
+			</div>
+		</div>
+
+		
+		<div class="rnp-group" data-tab="font">
+			<div class="rnp-group-title">字体</div>
+			<div class="rnp-checkbox-wrapper">
+				<input id="custom-font" type="checkbox" class="rnp-checkbox">
+				<label for="custom-font" class="rnp-checkbox-label">自定义字体</label>
+			</div>
+			<div id="rnp-custom-font-section" class="rnp-custom-font-section">
+
+			</div>
+		</div>
+		
+		<div class="rnp-group" data-tab="misc">
+			<div class="rnp-group-title">杂项</div>
+			<div class="rnp-checkbox-wrapper">
+				<input id="hide-song-alias-name" type="checkbox" class="rnp-checkbox">
+				<label for="hide-song-alias-name" class="rnp-checkbox-label">隐藏歌曲别名/译名</label>
+			</div>
+		</div>
+
+		<div class="rnp-group" data-tab="experimental">
+			<div class="rnp-group-title">实验性选项</div>
+			<span class="rnp-checkbox-note" style="padding-left: 0;">这些选项是实验性的，可能会在下一个版本移除，也可能加入正式功能。请不要过于依赖这些选项。</span>
+			<div class="rnp-slider-wrapper fluid-max-framerate with-ticks">
+				<label for="fluid-max-framerate" class="rnp-slider-label">流体帧率上限<button class="rnp-slider-reset"></button></label>
+				<input id="fluid-max-framerate" type="range" class="rnp-slider" min="0" max="4" value="4" default="4" step="1">
+				<div class="rnp-slider-ticks">
+					<div class="rnp-slider-tick">5</div>
+					<div class="rnp-slider-tick">10</div>
+					<div class="rnp-slider-tick">30</div>
+					<div class="rnp-slider-tick">60</div>
+					<div class="rnp-slider-tick">∞</div>
+				</div>
+			</div>
+			<span class="rnp-slider-note">仅在动态流体开启时生效</span>
+			<div class="rnp-slider-wrapper fluid-blur with-ticks">
+				<label for="fluid-blur" class="rnp-slider-label">流体模糊度<button class="rnp-slider-reset"></button></label>
+				<input id="fluid-blur" type="range" class="rnp-slider" min="5" max="7" value="6" default="6" step="1">
+				<div class="rnp-slider-ticks">
+					<div class="rnp-slider-tick">32</div>
+					<div class="rnp-slider-tick">64</div>
+					<div class="rnp-slider-tick">128</div>
+				</div>
+			</div>
+			<span class="rnp-slider-note">仅在流体开启时生效</span>
+			<div class="rnp-checkbox-wrapper presentation-mode-switch">
+				<input id="presentation-mode" type="checkbox" class="rnp-checkbox">
+				<label for="presentation-mode" class="rnp-checkbox-label">演示模式</label>
+			</div>
+			<span class="rnp-checkbox-note">隐藏一切多余元素</span>
+		</div>
+
+		<div class="rnp-group" data-tab="about">
+			<div class="rnp-group-title">关于</div>
+			<div class="rnp-about">
+				<div class="rnp-about-item">
+					<div class="rnp-about-item-title">版本</div>
+					<div id="rnp-version-number" class="rnp-about-item-content"></div>
+				</div>
+				<div class="rnp-about-item">
+					<div class="rnp-about-item-title">作者</div>
+					<div class="rnp-about-item-content">solstice23</div>
+				</div>
+				<div class="rnp-about-item">
+					<div class="rnp-about-item-title">Github</div>
+					<a class="rnp-about-item-content" onclick="betterncm.app.exec('https\:\/\/github.com/solstice23/refined-now-playing-netease');">前往</a>
+				</div>
+				<div class="rnp-about-item">
+					<div class="rnp-about-item-title">更新日志</div>
+					<a id="open-whats-new" class="rnp-about-item-content">查看</a>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

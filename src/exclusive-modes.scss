@@ -1,0 +1,85 @@
+// lyric-only mode
+
+body.lyric-only {
+	.n-single > .wrap > *:not(.lyric) {
+		visibility: hidden;
+		pointer-events: none;
+	}
+	.n-single > .wrap > .lyric {
+		left: 60px;
+		width: calc(100% - 100px);
+		top: 0;
+		height: unset;
+		bottom: clamp(30px, 5%, 60px);
+	}
+	#rnp-view .g-single-track .g-singlec-ct .n-single .wrap {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	#rnp-view .g-single-track .g-singlec-ct .n-single .rnp-v3-side {
+		display: none;
+	}
+	#rnp-view .g-single-track .g-singlec-ct .lyric {
+		grid-column: 1;
+		grid-row: 1;
+		justify-self: center;
+		width: 100%;
+		max-width: 100%;
+	}
+}
+
+// song-info only mode
+
+body.song-info-only {
+	.n-single > .wrap > .content {
+		width: 100%;
+		max-width: 100%;
+	}
+	.n-single > .wrap > .lyric {
+		visibility: hidden;
+		pointer-events: none;
+	}
+	&.horizontal-align-center {
+		.n-single > .wrap > .content {
+			width: 100%;
+			max-width: 100%;
+			> *, > * > * {
+				margin-left: 0;
+				padding-left: 0;
+			}
+		}
+	}
+	#rnp-view .g-single-track .g-singlec-ct .n-single .wrap {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	#rnp-view .g-single-track .g-singlec-ct .lyric {
+		display: none;
+	}
+	#rnp-view .g-single-track .g-singlec-ct .n-single .rnp-v3-side {
+		width: 100%;
+		justify-content: center;
+		align-items: center;
+	}
+	#rnp-view .g-single-track .g-singlec-ct .n-single .sd,
+	#rnp-view .g-single-track .content {
+		margin-left: 0;
+		margin-right: 0;
+	}
+}
+
+
+// center lyric (only for lyric-only mode)
+
+body.lyric-only.center-lyric {
+	.rnp-lyrics {
+		display: flex;
+		justify-content: center;
+		text-align: center;
+		margin-left: 0;
+		.rnp-interlude-inner {
+			transform-origin: center !important;
+		}
+		.rnp-lyrics-line {
+			transform-origin: center !important;
+		}
+	}
+}

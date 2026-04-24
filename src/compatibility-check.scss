@@ -1,0 +1,128 @@
+#refined-now-playing-wizard {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background: #00000088;
+    z-index: 2147483647;
+		
+	.rnp-compatibility-check {
+		position: fixed;
+		z-index: 2147483648;
+		background: #fff;
+		color: #333;
+		font-size: 16px;
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		border-radius: 8px;
+		padding: 50px 30px;
+		overflow-y: auto;
+		width: 500px;
+		box-shadow: 0 10px 20px rgb(0 0 0 / 20%);
+		max-height: 70vh;
+		box-sizing: border-box;
+	}
+
+	.rnp-compatibility-check::-webkit-scrollbar-thumb {
+		background: #00000033 !important;
+	}
+
+	.rnp-compatibility-check__title h2 {
+		font-size: 30px;
+		font-weight: bold;
+	}
+	.rnp-compatibility-check__title h3 {
+		font-size: 22px;
+		font-weight: bold;
+		margin-top: 10px;
+		margin-bottom: 30px;
+	}
+	.rnp-compatibility-check__content {
+		line-height: 1.8;
+	}
+	.rnp-compatibility-check__content h1 {
+		font-size: 22px;
+		margin-top: 20px;
+		margin-bottom: 10px;
+	}
+	.rnp-compatibility-check__content p {
+		margin-bottom: 10px;
+		b {
+			font-weight: bold;
+		}
+		li::before {
+			content: "•";
+			margin-right: 5px;
+		}
+	}
+	p.pass {
+		color: #04aa6d;
+	}
+	p.warning {
+		color: #cb2027;
+	}
+
+	li::before {
+		content: '· ';
+	}
+
+	button {
+		color: #333;
+		padding: 2px 15px;
+		border: none;
+		border-radius: 100px;
+		margin-top: 10px;
+		background: #00000022;
+		margin-right: 5px;
+	}
+	button:hover {
+		background: #0000002a;
+	}
+	button[disabled] {
+		pointer-events: none;
+		opacity: 0.4;
+	}
+	button.finish:not([disabled]) {
+		background: #2ea44f;
+		color: #fff;
+	}
+}
+
+#refined-now-playing-hijack-failure-notice {
+	.hijack-failure-notice {
+		position: fixed;
+		right: 50px;
+		top: 100px;
+		background: #0006;
+		backdrop-filter: blur(32px);
+		z-index: 10000;
+		border-radius: 12px;
+		padding: 15px;
+		font-size: 15px;
+		width: 400px;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	
+		.info > div:first-child {
+			font-size: 1.2em;
+			margin-bottom: 0.5em;
+		}
+		.info > div:last-child {
+			line-height: 1.5;
+			strong {
+				color: #fc2;
+			}
+		}
+		.action > button {
+			margin-left: 10px;
+			border: none;
+			background: none;
+			font-size: 25px;
+		}
+	}
+}
+    

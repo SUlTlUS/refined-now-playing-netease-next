@@ -1,0 +1,68 @@
+/* experimental */
+body.rnp-fluid-max-framerate-5 {
+	.rnp-background-fluid .rnp-background-fluid-rect {
+		animation-timing-function: steps(750);
+		canvas {
+			animation-timing-function: steps(300);
+		}
+	}
+}
+body.rnp-fluid-max-framerate-10 {
+	.rnp-background-fluid .rnp-background-fluid-rect {
+		animation-timing-function: steps(1500);
+		canvas {
+			animation-timing-function: steps(600);
+		}
+	}
+}
+body.rnp-fluid-max-framerate-30 {
+	.rnp-background-fluid .rnp-background-fluid-rect {
+		animation-timing-function: steps(4500);
+		canvas {
+			animation-timing-function: steps(1800);
+		}
+	}
+}
+body.rnp-fluid-max-framerate-60 {
+	.rnp-background-fluid .rnp-background-fluid-rect {
+		animation-timing-function: steps(9000);
+		canvas {
+			animation-timing-function: steps(3600);
+		}
+	}
+}
+
+
+
+.rnp-background-fluid {
+	&::after {
+		backdrop-filter: blur(var(--fluid-blur, 64px)) !important;
+	}
+}
+
+
+
+body.presentation-mode {
+	#root header,
+	#page_pc_main_nav,
+	footer {
+		display: none;
+	}
+	.rnp-full-screen-button {
+		left: 25px;
+	}
+	.g-single a {
+		pointer-events: none !important;
+	}
+	// hide comments
+	.g-single-track .g-bd2,
+	.g-singlec .g-bd2 {
+		display: none;
+	}
+	.g-singlec-ct {
+		overflow-y: hidden;
+	}
+	.g-bd2 {
+		display: none;
+	}
+}
