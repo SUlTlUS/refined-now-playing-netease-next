@@ -3,20 +3,8 @@
   "WorkspaceRootPath": "C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\src\\styles.scss||{181FE41B-5A5D-479F-9F8F-BF665F4EBC2A}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\styles.scss||{181FE41B-5A5D-479F-9F8F-BF665F4EBC2A}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\src\\main.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\main.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\src\\ncm-compat.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\ncm-compat.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\src\\v3-player-controls.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\v3-player-controls.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\src\\manifest.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\manifest.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     }
   ],
   "DocumentGroupContainers": [
@@ -26,7 +14,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 5,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Bookmark",
@@ -38,53 +26,15 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "ncm-compat.js",
-              "DocumentMoniker": "C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\src\\ncm-compat.js",
-              "RelativeDocumentMoniker": "src\\ncm-compat.js",
-              "ToolTip": "C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\src\\ncm-compat.js",
-              "RelativeToolTip": "src\\ncm-compat.js",
-              "ViewState": "AgIAAAcAAAAAAAAAAAAAABcAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
-              "WhenOpened": "2026-04-23T15:43:44.546Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "main.js",
-              "DocumentMoniker": "C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\src\\main.js",
-              "RelativeDocumentMoniker": "src\\main.js",
-              "ToolTip": "C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\src\\main.js",
-              "RelativeToolTip": "src\\main.js",
-              "ViewState": "AgIAADQEAAAAAAAAAAAnwDYEAAAhAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
-              "WhenOpened": "2026-04-23T13:40:02.061Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "v3-player-controls.js",
-              "DocumentMoniker": "C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\src\\v3-player-controls.js",
-              "RelativeDocumentMoniker": "src\\v3-player-controls.js",
-              "ToolTip": "C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\src\\v3-player-controls.js",
-              "RelativeToolTip": "src\\v3-player-controls.js",
-              "ViewState": "AgIAAJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
-              "WhenOpened": "2026-04-23T01:10:46.949Z"
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "styles.scss",
-              "DocumentMoniker": "C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\src\\styles.scss",
-              "RelativeDocumentMoniker": "src\\styles.scss",
-              "ToolTip": "C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\src\\styles.scss",
-              "RelativeToolTip": "src\\styles.scss",
-              "ViewState": "AgIAAEsDAAAAAAAAAAAAAFcDAAAnAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002663|",
-              "WhenOpened": "2026-04-23T00:52:14.915Z",
+              "Title": "manifest.json",
+              "DocumentMoniker": "C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\src\\manifest.json",
+              "RelativeDocumentMoniker": "src\\manifest.json",
+              "ToolTip": "C:\\IDE\\BetterNCM\\refined-now-playing-netease-master\\src\\manifest.json",
+              "RelativeToolTip": "src\\manifest.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAnAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-04-24T12:53:08.492Z",
               "EditorCaption": ""
             }
           ]

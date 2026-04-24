@@ -1,10 +1,7 @@
-# Refined Now Playing
+# Refined Now Playing Next 
 
-一个美化网易云音乐播放界面的 [BetterNCM](https://github.com/MicroCBer/BetterNCM) 插件
+一个美化网易云音乐播放界面的 [BetterNCM](https://github.com/MicroCBer/BetterNCM) 插件从Refined Now Playing修改而来
 
-# Status
-
-Since I no longer use CloudMusic, the maintenance of this project has been suspended indefinitely.
 
 # 安装
 
@@ -19,6 +16,6 @@ https://user-images.githubusercontent.com/23134847/216518149-9d85c6a6-4ad5-4c2c-
 
 ![screenshot2](screenshot3.jpg)
 
-![screenshot3](screenshot2.jpg)
-
-![screenshot4](screenshot4.jpg)
+# 感谢
+本项目在开发过程中参考和使用了以下优秀的开源项目
+- [amll-dev/applemusic-like-lyrics](https://github.com/amll-dev/applemusic-like-lyrics)

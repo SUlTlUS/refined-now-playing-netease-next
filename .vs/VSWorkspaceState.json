@@ -1,8 +1,10 @@
 {
   "ExpandedNodes": [
     "",
-    "\\src"
+    "\\dist",
+    "\\src",
+    "\\src\\liblyric"
   ],
-  "SelectedNode": "\\src\\ncm-compat.js",
+  "SelectedNode": "\\src\\lyrics.scss",
   "PreviewInSolutionExplorer": false
 }

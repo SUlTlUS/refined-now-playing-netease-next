@@ -54,9 +54,6 @@ const calcAccentColor = (dom) => {
 	const quantizedColors = QuantizerCelebi.quantize(pixels, 128);
 	const sortedQuantizedColors = Array.from(quantizedColors).sort((a, b) => b[1] - a[1]);
 
-	/*Array.from(quantizedColors).sort((a, b) => b[1] - a[1]).slice(0, 50).map((x) => {
-		console.log(...argb2Rgb(x[0]), x[1]);
-	});*/
 	const mostFrequentColors = sortedQuantizedColors.slice(0, 5).map((x) => argb2Rgb(x[0]));
 	if (mostFrequentColors.every((x) => Math.max(...x) - Math.min(...x) < 5)) {
 		useGreyAccentColor();
@@ -88,7 +85,7 @@ const recalcAccentColor = () => {
 	}
 }
 
-var lastCDImage = '';
+let lastCDImage = '';
 const updateCDImage = () => {
 	if (!document.querySelector('.g-single')) {
 		return;
@@ -120,7 +117,7 @@ const updateCDImage = () => {
 	
 
 
-var lastTitle = "";
+let lastTitle = "";
 const titleSizeController = document.createElement('style');
 titleSizeController.innerHTML = '';
 document.head.appendChild(titleSizeController);
@@ -244,6 +241,33 @@ const ensureTitleScrollStructure = (titleContainer) => {
 		titleDuplicate,
 	};
 };
+const measureTitleTextWidth = (referenceElement, text) => {
+	const resolvedText = String(text ?? '').replace(/\u00a0/g, ' ').trim();
+	if (!referenceElement || !resolvedText) {
+		return 0;
+	}
+
+	const computedStyle = window.getComputedStyle(referenceElement);
+	const measureSpan = document.createElement('span');
+	measureSpan.textContent = resolvedText;
+	measureSpan.style.position = 'absolute';
+	measureSpan.style.left = '-99999px';
+	measureSpan.style.top = '-99999px';
+	measureSpan.style.visibility = 'hidden';
+	measureSpan.style.pointerEvents = 'none';
+	measureSpan.style.whiteSpace = 'nowrap';
+	measureSpan.style.font = computedStyle.font;
+	measureSpan.style.fontSize = computedStyle.fontSize;
+	measureSpan.style.fontWeight = computedStyle.fontWeight;
+	measureSpan.style.fontFamily = computedStyle.fontFamily;
+	measureSpan.style.letterSpacing = computedStyle.letterSpacing;
+	measureSpan.style.textTransform = computedStyle.textTransform;
+	measureSpan.style.textIndent = computedStyle.textIndent;
+	document.body.appendChild(measureSpan);
+	const measuredWidth = measureSpan.getBoundingClientRect().width;
+	document.body.removeChild(measureSpan);
+	return measuredWidth;
+};
 const calcTitleScroll = () => {
 	moveTags();
 	const titleContainer = document.querySelector(`#${RNP_VIEW_ID} .g-singlec-ct .n-single .mn .head .inf .title .name`)
@@ -251,19 +275,22 @@ const calcTitleScroll = () => {
 	if (!titleContainer) {
 		return;
 	}
-	const { titleInner, titleDuplicate } = ensureTitleScrollStructure(titleContainer);
+	const { titleTrack, titleInner, titleDuplicate } = ensureTitleScrollStructure(titleContainer);
 	const containerWidth = titleContainer.clientWidth;
-	const innerWidth = titleInner.scrollWidth;
+	const titleText = titleInner.textContent ?? '';
+	const innerWidth = measureTitleTextWidth(titleInner, titleText);
 	const gap = Math.max(12, Math.min(Math.round(containerWidth * 0.045), 20));
 	const shouldScroll = containerWidth > 0 && (innerWidth - containerWidth) > 1;
-	titleDuplicate.textContent = titleInner.textContent ?? '';
+	titleDuplicate.textContent = shouldScroll ? titleText : '';
 	titleContainer.style.setProperty('--scroll-gap', `${gap}px`);
 	if (shouldScroll) {
+		titleTrack.style.transform = '';
 		titleContainer.classList.add('scroll');
 	} else {
 		titleContainer.classList.remove('scroll');
+		titleTrack.style.transform = 'translateX(0)';
 	}
-	titleContainer.style.setProperty('--scroll-distance', `${innerWidth + gap}px`);
+	titleContainer.style.setProperty('--scroll-distance', `${Math.max(innerWidth + gap, 0)}px`);
 	titleContainer.style.setProperty('--scroll-speed', `${Math.max((innerWidth + gap) / 30, 6)}s`);
 }
 
@@ -522,9 +549,7 @@ const getCurrentPlayingInfo = () => {
 };
 
 const clearElementChildren = (element) => {
-	while (element?.firstChild) {
-		element.removeChild(element.firstChild);
-	}
+	if (element) element.textContent = '';
 };
 
 const NATIVE_NAVIGABLE_SELECTOR = [
@@ -544,6 +569,119 @@ const NATIVE_ALBUM_TARGET_PATTERN = /album|\u4e13\u8f91/;
 
 const normalizeComparableText = (value) => normalizeText(value).toLowerCase().replace(/\s+/g, '');
 
+const ROOT_ROUTER_CANDIDATES = [
+	() => getNCMStore()?.router,
+	() => getNCMStore()?.history,
+	() => getNCMStore()?.getState?.()?.router,
+	() => getNCMStore()?.getState?.()?.history,
+	() => document.getElementById('root')?._reactRootContainer?._internalRoot?.current?.child?.child?.memoizedProps,
+	() => document.getElementById('root')?._reactRootContainer?._internalRoot?.current?.child?.memoizedProps,
+	() => document.getElementById('root')?._reactRootContainer?._internalRoot?.current?.memoizedProps,
+];
+
+const normalizeRoutePath = (href) => {
+	const normalizedHref = normalizeText(href);
+	if (!normalizedHref || normalizedHref.startsWith('javascript:')) {
+		return '';
+	}
+
+	const nextHash = normalizedHref.startsWith('#') ? normalizedHref : `#${normalizedHref}`;
+	const nextPath = nextHash.replace(/^#/, '');
+	return nextPath.startsWith('/') ? nextPath : `/${nextPath}`;
+};
+
+const getRouteNavigator = () => {
+	const visited = new Set();
+	const candidates = [];
+
+	for (const getCandidate of ROOT_ROUTER_CANDIDATES) {
+		try {
+			const candidate = getCandidate();
+			if (candidate) {
+				candidates.push(candidate);
+			}
+		} catch (error) {
+			console.debug('Failed to resolve router candidate', error);
+		}
+	}
+
+	while (candidates.length > 0) {
+		const candidate = candidates.shift();
+		if (!candidate || visited.has(candidate)) {
+			continue;
+		}
+		visited.add(candidate);
+
+		if (typeof candidate.navigate === 'function') {
+			return (path) => candidate.navigate(path);
+		}
+		if (typeof candidate.push === 'function') {
+			return (path) => candidate.push(path);
+		}
+		if (typeof candidate.replace === 'function' && typeof candidate.location === 'object') {
+			return (path) => candidate.replace(path);
+		}
+
+		['router', 'history', 'navigator', 'props'].forEach((key) => {
+			const nested = candidate?.[key];
+			if (nested && typeof nested === 'object') {
+				candidates.push(nested);
+			}
+		});
+	}
+
+	return null;
+};
+
+const dispatchRouteFallbackEvents = (oldURL, newURL) => {
+	try {
+		if (typeof HashChangeEvent === 'function') {
+			window.dispatchEvent(new HashChangeEvent('hashchange', {
+				oldURL,
+				newURL,
+			}));
+		} else {
+			window.dispatchEvent(new Event('hashchange'));
+		}
+	} catch (error) {
+		window.dispatchEvent(new Event('hashchange'));
+	}
+
+	try {
+		if (typeof PopStateEvent === 'function') {
+			window.dispatchEvent(new PopStateEvent('popstate', {
+				state: window.history?.state,
+			}));
+		} else {
+			window.dispatchEvent(new Event('popstate'));
+		}
+	} catch (error) {
+		window.dispatchEvent(new Event('popstate'));
+	}
+};
+
+const fallbackNavigateWithinApp = (normalizedHref) => {
+	const nextHash = normalizedHref.startsWith('#') ? normalizedHref : `#${normalizedHref}`;
+	const oldURL = window.location.href;
+	const newURL = new URL(window.location.href);
+	newURL.hash = nextHash;
+
+	try {
+		if (window.history?.pushState) {
+			window.history.pushState(window.history.state, '', nextHash);
+		} else {
+			window.location.hash = nextHash;
+		}
+	} catch (error) {
+		window.location.hash = nextHash;
+	}
+
+	if (window.location.hash !== nextHash) {
+		window.location.hash = nextHash;
+	}
+	dispatchRouteFallbackEvents(oldURL, newURL.toString());
+};
+
 const navigateWithinApp = (href) => {
 	const normalizedHref = normalizeText(href);
 	if (!normalizedHref || normalizedHref.startsWith('javascript:')) {
@@ -551,9 +689,25 @@ const navigateWithinApp = (href) => {
 	}
 
 	closeRnpLyricPage();
-	const nextHash = normalizedHref.replace(/^#/, '');
+	const nextPath = normalizeRoutePath(normalizedHref);
 	window.setTimeout(() => {
-		window.location.hash = nextHash;
+		const routeNavigator = getRouteNavigator();
+		if (routeNavigator && nextPath) {
+			try {
+				routeNavigator(nextPath);
+				window.setTimeout(() => {
+					const currentRoute = normalizeComparableText(`${window.location.pathname}${window.location.search}${window.location.hash}`);
+					const targetRoute = normalizeComparableText(nextPath);
+					if (!currentRoute.includes(targetRoute)) {
+						fallbackNavigateWithinApp(normalizedHref);
+					}
+				}, 48);
+				return;
+			} catch (error) {
+				console.warn('Failed to navigate with app router, falling back to hash navigation', error);
+			}
+		}
+		fallbackNavigateWithinApp(normalizedHref);
 	}, 0);
 	return true;
 };
@@ -787,6 +941,13 @@ const openArtistFromNativeUI = (artist, fallbackHref = '') => {
 	return navigateWithinApp(fallbackHref);
 };
 
+const openArtistFromPluginLink = (artist, fallbackHref = '') => {
+	if (fallbackHref) {
+		return navigateWithinApp(fallbackHref);
+	}
+	return openArtistFromNativeUI(artist, fallbackHref);
+};
+
 const openMoreFromNativeUI = () => {
 	const moreButton = findNativeMoreButton();
 	if (clickNativeNavigationTarget(moreButton)) {
@@ -945,14 +1106,23 @@ const isNativeBottomBarMetaTextTarget = (element, bottomBar) => {
 
 const getNativeMenuActionTarget = (element) => {
 	const resolvedElement = getEventTargetElement(element);
-	const menuLayer = resolvedElement?.closest?.(NATIVE_MENU_LAYER_SELECTOR);
-	if (!resolvedElement || !menuLayer || !isVisibleElement(menuLayer) || menuLayer.closest(`#${RNP_VIEW_ID}`)) {
+	if (!resolvedElement || resolvedElement.closest?.(`#${RNP_VIEW_ID}`)) {
 		return null;
 	}
 
-	const actionTarget = getNavigableAncestor(resolvedElement, menuLayer)
-		?? resolvedElement.closest?.(NATIVE_MENU_ITEM_SELECTOR);
+	const menuLayer = resolvedElement.closest?.(NATIVE_MENU_LAYER_SELECTOR);
+	if (menuLayer && (!isVisibleElement(menuLayer) || menuLayer.closest(`#${RNP_VIEW_ID}`))) {
+		return null;
+	}
+
+	const boundary = menuLayer ?? document.body;
+	const actionTarget = resolvedElement.closest?.(NATIVE_MENU_ITEM_SELECTOR)
+		?? getNavigableAncestor(resolvedElement, boundary)
+		?? resolvedElement;
 	if (!actionTarget || actionTarget === menuLayer || !isVisibleElement(actionTarget)) {
+		return null;
+	}
+	if (actionTarget.closest?.(`#${RNP_VIEW_ID}`) || actionTarget.closest?.(NATIVE_BOTTOM_BAR_SELECTOR)) {
 		return null;
 	}
 
@@ -985,7 +1155,7 @@ const bindNativeMenuCloseInterceptor = () => {
 		return;
 	}
 	hasBoundNativeMenuCloseInterceptor = true;
-	document.addEventListener('click', (event) => {
+	const handleNativeMenuCloseEvent = (event) => {
 		if (!pendingCloseAfterNativeMenu) {
 			return;
 		}
@@ -1006,7 +1176,10 @@ const bindNativeMenuCloseInterceptor = () => {
 		if (!activeMenuLayer || (!activeMenuLayer.contains(event.target) && !activeMenuLayer.contains(pointTarget))) {
 			disarmCloseAfterNativeMenu();
 		}
-	}, true);
+	};
+	['pointerup', 'mouseup', 'click'].forEach((eventName) => {
+		document.addEventListener(eventName, handleNativeMenuCloseEvent, true);
+	});
 };
 
 const applyV3LyricPageAlignment = () => {
@@ -1089,7 +1262,7 @@ const updateV3LyricPageInfo = () => {
 				artist.name,
 				{
 					href: artistHref,
-					onNavigate: () => openArtistFromNativeUI(artist, artistHref),
+					onNavigate: () => openArtistFromPluginLink(artist, artistHref),
 				}
 			);
 		}
@@ -1208,6 +1381,10 @@ const closeNativeNowPlayingPage = () => {
 		}
 		page.classList.remove('z-show');
 		page.setAttribute('aria-hidden', 'true');
+		page.dataset.rnpHidden = 'true';
+		page.style.setProperty('visibility', 'hidden', 'important');
+		page.style.setProperty('pointer-events', 'none', 'important');
+		page.style.setProperty('opacity', '0', 'important');
 	});
 	document.body.classList.remove('mq-playing-init');
 };
@@ -1215,6 +1392,12 @@ const closeNativeNowPlayingPage = () => {
 const restoreNativeNowPlayingPage = () => {
 	document.querySelectorAll(`#root .g-single[aria-hidden="true"]`).forEach((page) => {
 		page.removeAttribute('aria-hidden');
+		if (page.dataset.rnpHidden === 'true') {
+			delete page.dataset.rnpHidden;
+			page.style.removeProperty('visibility');
+			page.style.removeProperty('pointer-events');
+			page.style.removeProperty('opacity');
+		}
 	});
 };
 
@@ -1233,16 +1416,35 @@ const syncV3LyricPageState = () => {
 	return nowPlayingPage;
 };
 
+let nativeNowPlayingSuppressionTimerIds = [];
+const suppressNativeNowPlayingPage = () => {
+	nativeNowPlayingSuppressionTimerIds.forEach((timerId) => clearTimeout(timerId));
+	nativeNowPlayingSuppressionTimerIds = [];
+
+	closeNativeNowPlayingPage();
+	[0, 32, 96, 180, 320].forEach((delay) => {
+		const timerId = window.setTimeout(() => {
+			if (document.body.classList.contains(RNP_PAGE_OPEN_CLASS)) {
+				closeNativeNowPlayingPage();
+			}
+		}, delay);
+		nativeNowPlayingSuppressionTimerIds.push(timerId);
+	});
+};
+
 const openRnpLyricPage = () => {
 	createV3LyricPage();
 	resetRnpEdgeRevealState();
 	document.body.classList.add(RNP_PAGE_OPEN_CLASS);
 	syncV3LyricPageState();
+	suppressNativeNowPlayingPage();
 	window.dispatchEvent(new Event('rnp-lyric-page-opened'));
 	scheduleV3LyricPageInfoUpdate();
 };
 
 const closeRnpLyricPage = () => {
+	nativeNowPlayingSuppressionTimerIds.forEach((timerId) => clearTimeout(timerId));
+	nativeNowPlayingSuppressionTimerIds = [];
 	document.body.classList.remove(RNP_PAGE_OPEN_CLASS);
 	resetRnpEdgeRevealState();
 	syncV3LyricPageState();
@@ -1254,16 +1456,23 @@ const onLyricPageButtonClickedV3 = (event) => {
 		return;
 	}
 
-	event.preventDefault();
-	event.stopImmediatePropagation();
-	event.stopPropagation();
+	suppressEvent(event);
 	openRnpLyricPage();
 };
 
 const stopNativeNowPlayingEvent = (event) => {
+	suppressEvent(event);
+};
+
+const suppressEvent = (event) => {
 	event.preventDefault();
 	event.stopImmediatePropagation();
 	event.stopPropagation();
+};
+
+const suppressEventAndBlur = (event) => {
+	suppressEvent(event);
+	event.currentTarget?.blur?.();
 };
 
 const getEventTargetElement = (value) => {
@@ -1438,14 +1647,7 @@ const getPrimaryWindowControlButtons = (group = getNativeWindowControlGroup(), b
 		return buttons;
 	}
 
-	const orderedButtons = [...buttons].sort((first, second) => {
-		const firstRect = first.getBoundingClientRect();
-		const secondRect = second.getBoundingClientRect();
-		if (Math.abs(firstRect.top - secondRect.top) > 2) {
-			return firstRect.top - secondRect.top;
-		}
-		return firstRect.left - secondRect.left;
-	});
+	const orderedButtons = sortElementsByPosition(buttons);
 
 	return isWindowControlGroupLeftAnchored(group)
 		? orderedButtons.slice(0, 3)
@@ -1682,8 +1884,6 @@ const syncRnpPageWindowTools = (view) => {
 	const fullScreenButton = view.querySelector('.rnp-window-tool-fullscreen');
 	fullScreenButton?.setAttribute('title', '全屏');
 	fullScreenButton?.setAttribute('aria-label', '全屏');
-	fullScreenButton?.setAttribute('title', '全屏');
-	fullScreenButton?.setAttribute('aria-label', '全屏');
 	if (windowTools && !windowTools.querySelector('.rnp-window-tool-plugin-close')) {
 		const pluginCloseButton = document.createElement('button');
 		pluginCloseButton.type = 'button';
@@ -1698,9 +1898,7 @@ const syncRnpPageWindowTools = (view) => {
 	if (topCloseButton && topCloseButton.dataset.rnpCloseBound !== 'true') {
 		topCloseButton.dataset.rnpCloseBound = 'true';
 		topCloseButton.addEventListener('click', (event) => {
-			event.preventDefault();
-			event.stopPropagation();
-			event.currentTarget?.blur?.();
+			suppressEventAndBlur(event);
 			resetRnpEdgeRevealState(view);
 			closeRnpLyricPage();
 		});
@@ -1800,9 +1998,7 @@ const createV3LyricPage = () => {
 		resetRnpEdgeRevealState(view);
 	});
 	view.querySelector('.rnp-control-thumb')?.addEventListener('click', (event) => {
-		event.preventDefault();
-		event.stopPropagation();
-		event.currentTarget?.blur?.();
+		suppressEventAndBlur(event);
 		resetRnpEdgeRevealState(view);
 		closeRnpLyricPage();
 	});
@@ -1815,33 +2011,23 @@ const createV3LyricPage = () => {
 		dragRnpWindow();
 	});
 	view.querySelector('.rnp-window-tool-minimize')?.addEventListener('click', (event) => {
-		event.preventDefault();
-		event.stopPropagation();
-		event.currentTarget?.blur?.();
+		suppressEventAndBlur(event);
 		triggerNativeWindowAction('minimize');
 	});
 	view.querySelector('.rnp-window-tool-maximize')?.addEventListener('click', (event) => {
-		event.preventDefault();
-		event.stopPropagation();
-		event.currentTarget?.blur?.();
+		suppressEventAndBlur(event);
 		triggerNativeWindowAction('maximize');
 	});
 	view.querySelector('.rnp-window-tool-close')?.addEventListener('click', (event) => {
-		event.preventDefault();
-		event.stopPropagation();
-		event.currentTarget?.blur?.();
+		suppressEventAndBlur(event);
 		triggerNativeWindowAction('close');
 	});
 	view.querySelector('.rnp-window-tool-fullscreen')?.addEventListener('click', (event) => {
-		event.preventDefault();
-		event.stopPropagation();
-		event.currentTarget?.blur?.();
+		suppressEventAndBlur(event);
 		toggleFullScreen();
 	});
 	view.querySelector('.rnp-info-more-button')?.addEventListener('click', (event) => {
-		event.preventDefault();
-		event.stopPropagation();
-		event.currentTarget?.blur?.();
+		suppressEventAndBlur(event);
 		openMoreFromNativeUI();
 	});
 	syncRnpWindowControlState();
@@ -1890,11 +2076,7 @@ const injectV3LyricPage = async () => {
 };
 
 const addOrRemoveGlobalClassByOption = (className, optionValue) => {
-	if (optionValue) {
-		document.body.classList.add(className);
-	} else {
-		document.body.classList.remove(className);
-	}
+	document.body.classList.toggle(className, Boolean(optionValue));
 }
 
 let shouldSettingMenuReload = true;
@@ -1951,12 +2133,16 @@ const addSettingsMenu = async () => {
 		});
 		func(checkbox.checked);
 	}
-	const bindSliderToCSSVariable = (slider, variable, defaultValue = 0, event = 'input', mapping = (x) => { return x }, addClassWhenAdjusting = '') => {
+	const bindSlider = (slider, { variable = null, func = null, defaultValue = 0, event = 'input', mapping = (x) => x, addClassWhenAdjusting = '' } = {}) => {
 		slider.value = getSetting(slider.id, defaultValue);
 		slider.dispatchEvent(new Event("input"));
+		const applyValue = (value) => {
+			const mapped = mapping(value);
+			if (variable) document.body.style.setProperty(variable, mapped);
+			if (func) func(mapped);
+		};
 		slider.addEventListener(event, e => {
-			const value = e.target.value;
-			document.body.style.setProperty(variable, mapping(value));
+			applyValue(e.target.value);
 		});
 		slider.addEventListener("change", e => {
 			shouldSettingMenuReload = true;
@@ -1970,30 +2156,14 @@ const addSettingsMenu = async () => {
 				document.body.classList.remove(addClassWhenAdjusting);
 			});
 		}
-		document.body.style.setProperty(variable, mapping(slider.value));
+		applyValue(slider.value);
 		sliderEnhance(slider);
 	}
-	const bindSliderToFunction = (slider, func, defaultValue = 0, event = 'input', mapping = (x) => { return x }, addClassWhenAdjusting = '') => {
-		slider.value = getSetting(slider.id, defaultValue);
-		slider.dispatchEvent(new Event("input"));
-		slider.addEventListener(event, e => {
-			const value = e.target.value;
-			func(mapping(value));
-		});
-		slider.addEventListener("change", e => {
-			shouldSettingMenuReload = true;
-			setSetting(slider.id, e.target.value);
-		});
-		if (addClassWhenAdjusting) {
-			slider.addEventListener("mousedown", e => {
-				document.body.classList.add(addClassWhenAdjusting);
-			});
-			slider.addEventListener("mouseup", e => {
-				document.body.classList.remove(addClassWhenAdjusting);
-			});
-		}
-		func(mapping(slider.value));
-		sliderEnhance(slider);
+	const bindSliderToCSSVariable = (slider, variable, defaultValue = 0, event = 'input', mapping = (x) => x, addClassWhenAdjusting = '') => {
+		bindSlider(slider, { variable, defaultValue, event, mapping, addClassWhenAdjusting });
+	}
+	const bindSliderToFunction = (slider, func, defaultValue = 0, event = 'input', mapping = (x) => x, addClassWhenAdjusting = '') => {
+		bindSlider(slider, { func, defaultValue, event, mapping, addClassWhenAdjusting });
 	}
 	const bindSelectGroupToClasses = (selectGroup, defaultValue, mapping = (x) => { return x }, callback = (x) => {}) => {
 		const buttons = selectGroup.querySelectorAll(".rnp-select-group-btn");
@@ -2023,9 +2193,7 @@ const addSettingsMenu = async () => {
 		});
 		callback(value);
 	}
-	const getOptionDom = (selector) => {
-		return document.querySelector(selector);
-	}
+	const getOptionDom = (selector) => document.querySelector(selector);
 
 
 	const initSettings = () => {
@@ -2134,7 +2302,7 @@ const addSettingsMenu = async () => {
 		const lyricZoom = getOptionDom('#lyric-zoom');
 		const lyricBlur = getOptionDom('#lyric-blur');
 		const lyricRotate = getOptionDom('#lyric-rotate');
-		const RotateCurvature = getOptionDom('#rotate-curvature');
+		const rotateCurvature = getOptionDom('#rotate-curvature');
 		const karaokeAnimation = getOptionDom('#karaoke-animation');
 		const currentLyricAlignmentPercentage = getOptionDom('#current-lyric-alignment-percentage');
 		const lyricStagger = getOptionDom('#lyric-stagger');
@@ -2169,7 +2337,7 @@ const addSettingsMenu = async () => {
 		bindCheckboxToClass(lyricRotate, 'lyric-rotate', false, (x) => {
 			document.dispatchEvent(new CustomEvent('rnp-lyric-rotate', { detail: x }));
 		});
-		bindSliderToFunction(RotateCurvature, (x) => {
+		bindSliderToFunction(rotateCurvature, (x) => {
 			document.dispatchEvent(new CustomEvent('rnp-rotate-curvature', { detail: x }));
 		}, 25, 'change');
 		bindSelectGroupToClasses(karaokeAnimation, 'float', (x) => `rnp-karaoke-animation-${x}`, (x) => {
@@ -2298,23 +2466,14 @@ const addSettingsMenu = async () => {
 	settingsMenu.id = 'settings-menu';
 	settingsMenu.innerHTML = settingsMenuHTML;
 
-	if (document.querySelector(settingsMenu.id)) {
-		document.querySelector(settingsMenu.id).remove();
+	if (document.querySelector(`#${settingsMenu.id}`)) {
+		document.querySelector(`#${settingsMenu.id}`).remove();
 	}
 
 	getV3LyricPage()?.appendChild(settingsMenu);
 	initSettings();
 	initTabs(settingsMenu);
 	hijackFailureNoticeCheck();
-	/*channel.call(
-		"app.getLocalConfig", 
-		(GpuAccelerationEnabled) => {
-			if (!~~GpuAccelerationEnabled) {
-				document.body.classList.add('gpu-acceleration-disabled');
-			}
-		}, 
-		["setting", "hardware-acceleration"]
-	);*/
 };
 
 const toggleFullScreen = (force = null) => {
@@ -2345,21 +2504,17 @@ const addFullScreenButton = () => {
 	const fullScreenButton = document.createElement('div');
 	fullScreenButton.classList.add('rnp-full-screen-button');
 	fullScreenButton.title = '全屏';
-	fullScreenButton.addEventListener('click', () => {toggleFullScreen()});
+	fullScreenButton.addEventListener('click', () => toggleFullScreen());
 	document.body.appendChild(fullScreenButton); 
 	//Full Screen Clock
-	var fullScreenClock = document.createElement('div');
+	const fullScreenClock = document.createElement('div');
 	fullScreenClock.classList.add('rnp-full-screen-clock');
-	function updateClock() {
-		var currentTime = new Date();
-		var hours = currentTime.getHours();
-		var minutes = currentTime.getMinutes();
-	  
-		// 格式化小时和分钟，确保是两位数
-		hours = ('0' + hours).slice(-2);
-		minutes = ('0' + minutes).slice(-2);
-		fullScreenClock.textContent = hours + ':' + minutes;
-	  }
+	const updateClock = () => {
+		const currentTime = new Date();
+		const hours = String(currentTime.getHours()).padStart(2, '0');
+		const minutes = String(currentTime.getMinutes()).padStart(2, '0');
+		fullScreenClock.textContent = `${hours}:${minutes}`;
+	};
 	updateClock();
 	setInterval(updateClock, 1000);
 	document.body.appendChild(fullScreenClock);
@@ -2381,7 +2536,7 @@ Object.defineProperty(HTMLImageElement.prototype, 'src', {
 	},
 	set: function(src) {
 		let element = this;
-		if (element.classList.contains('j-flag')/* || (element.parentElement && element.parentElement.classList.contains('.j-curr'))*/) {
+		if (element.classList.contains('j-flag')) {
 			if (!window.albumSize) {
 				window.albumSize = 210;
 			}
@@ -2407,20 +2562,6 @@ plugin.onLoad(async (p) => {
 	injectV3LyricPage();
 	createV3LyricPage();
 
-	const syncNowPlayingState = () => {
-		const nowPlayingPage = getV3LyricPage();
-		const isOpen = document.body.classList.contains(RNP_PAGE_OPEN_CLASS);
-		document.body.classList.toggle('mq-playing', isOpen);
-		nowPlayingPage?.classList?.toggle('z-show', isOpen);
-		if (isOpen) {
-			closeNativeNowPlayingPage();
-		} else {
-			restoreNativeNowPlayingPage();
-		}
-		syncRnpWindowControlState();
-		return nowPlayingPage;
-	};
-
 	const patchNowPlayingPage = async () => {
 		const nowPlayingPage = getV3LyricPage();
 		if (!nowPlayingPage || nowPlayingPage.classList.contains('patched')) {
@@ -2444,22 +2585,6 @@ plugin.onLoad(async (p) => {
 				e.preventDefault();
 				e.stopPropagation();
 				const imageURL = coverImage.src.replace(/^orpheus:\/\/cache\/\?/, '').replace(/\?.*$/, '');
-				/*
-				showContextMenu(e.clientX, e.clientY, [
-					{
-						label: '澶嶅埗鍥剧墖鍦板潃',
-						callback: () => {
-							copyTextToClipboard(imageURL);
-						}
-					},
-					{
-						label: '鍦ㄦ祻瑙堝櫒涓墦寮€鍥剧墖',
-						callback: () => {
-							betterncm.app.exec(`${imageURL}`);
-						}
-					}
-				]);
-				*/
 				showContextMenu(e.clientX, e.clientY, [
 					{
 						label: '复制封面链接',
@@ -2480,14 +2605,6 @@ plugin.onLoad(async (p) => {
 				const selection = window.getSelection();
 				if (selection?.toString?.().trim() && selection.baseNode?.parentElement?.closest?.(closetSelector)) {
 					const selectedText = selection.toString().trim();
-					/*
-					items.unshift({
-						label: '澶嶅埗',
-						callback: () => {
-							copyTextToClipboard(selectedText);
-						}
-					});
-					*/
 					items.unshift({
 						label: '复制选中文本',
 						callback: () => {
@@ -2503,16 +2620,6 @@ plugin.onLoad(async (p) => {
 
 				if (e.target.closest('.title .name')) {
 					const songName = infoContainer.querySelector('.title .name')?.innerText ?? '';
-					/*
-					const items = [
-						{
-							label: '澶嶅埗姝屾洸鍚?',
-							callback: () => {
-								copyTextToClipboard(songName);
-							}
-						}
-					];
-					*/
 					const items = [
 						{
 							label: '复制歌曲名',
@@ -2528,16 +2635,6 @@ plugin.onLoad(async (p) => {
 
 				if (e.target.closest('.info .alias')) {
 					const songAlias = infoContainer.querySelector('.info .alias')?.innerText ?? '';
-					/*
-					const items = [
-						{
-							label: '澶嶅埗姝屾洸鍒悕',
-							callback: () => {
-								copyTextToClipboard(songAlias);
-							}
-						}
-					];
-					*/
 					const items = [
 						{
 							label: '复制歌曲别名/译名',
@@ -2587,18 +2684,18 @@ plugin.onLoad(async (p) => {
 			);
 
 			addSettingsMenu();
-			addFullScreenButton(nowPlayingPage);
+			addFullScreenButton();
 			updateCDImage();
 			scheduleV3LyricPageInfoUpdate();
 			whatsNew();
 
 	};
 
-	syncNowPlayingState();
+	syncV3LyricPageState();
 	void patchNowPlayingPage();
 	document.addEventListener('lyrics-updated', scheduleV3LyricPageInfoUpdate);
 	window.addEventListener('rnp-lyric-page-opened', () => {
-		syncNowPlayingState();
+		syncV3LyricPageState();
 		scheduleV3LyricPageInfoUpdate();
 		for (let i = 0; i < 6; i++) {
 			setTimeout(() => {
@@ -2609,7 +2706,7 @@ plugin.onLoad(async (p) => {
 		}
 	});
 	window.addEventListener('rnp-lyric-page-closed', () => {
-		syncNowPlayingState();
+		syncV3LyricPageState();
 	});
 
 	// Fix incomptibility with light theme
@@ -2693,14 +2790,6 @@ plugin.onLoad(async (p) => {
 			setIdle();
 		}
 	});
-
-	/*new MutationObserver(() => {
-		if (!document.body.classList.contains('mq-playing') && !document.querySelector('.g-single')?.classList.contains('z-show')) {
-			if (document.body.classList.contains('mq-playing-init')) {
-				document.body.classList.remove('mq-playing-init');
-			}
-		}
-	}).observe(document.body, { attributes: true, attributeFilter: ['class'] });*/
 });
 
 plugin.onConfig((tools) => {
