@@ -2,6 +2,7 @@ import './styles.scss';
 import './exclusive-modes.scss';
 import './experimental.scss';
 import settingsMenuHTML from './settings-menu.html';
+import manifest from './manifest.json';
 import './settings-menu.scss';
 import { argb2Rgb, rgb2Argb } from './color-utils.js';
 import { getSetting, setSetting, chunk, copyTextToClipboard } from './utils.js';
@@ -17,6 +18,13 @@ import { FontSettings } from './font-settings.js';
 import { appendRegisterCall, getNCMStore, getPlayingSong, getPlayingSongId } from './ncm-compat.js';
 import { createRoot } from 'react-dom/client';
 import { V3PlayerControls } from './v3-player-controls.js';
+
+const PLUGIN_VERSION = String(
+	manifest?.version
+	?? loadedPlugins?.RefinedNowPlayingNext?.manifest?.version
+	?? loadedPlugins?.[manifest?.name]?.manifest?.version
+	?? ''
+);
 
 const updateAccentColor = (name, argb) => {
 	const [r, g, b] = [...argb2Rgb(argb)];
@@ -2418,7 +2426,9 @@ const addSettingsMenu = async () => {
 
 		// 关于
 		const versionNumber = getOptionDom('#rnp-version-number');
-		versionNumber.innerHTML = loadedPlugins.RefinedNowPlaying.manifest.version;
+		if (versionNumber) {
+			versionNumber.textContent = PLUGIN_VERSION || 'Unknown';
+		}
 		const openWhatsNew = getOptionDom('#open-whats-new');
 		openWhatsNew.addEventListener('click', () => {
 			whatsNew(true);

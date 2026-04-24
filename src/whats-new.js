@@ -83,7 +83,7 @@ function WhatsNew(props) {
 
 export function whatsNew(force = false) {
 	let lastVersion = localStorage.getItem("refined-now-playing-last-version") ?? "0.0.0";
-	const currentVersion = loadedPlugins.RefinedNowPlaying.manifest.version;
+	const currentVersion = loadedPlugins.RefinedNowPlayingNext.manifest.version;
 	if (compareVersions(lastVersion, currentVersion) >= 0 && !force) return;
 	localStorage.setItem("refined-now-playing-last-version", currentVersion);
 	if (changeLog.filter(version => compareVersions(version.version, lastVersion) > 0).length === 0 && !force) return;
