@@ -2,9 +2,8 @@ import './lyric-provider.js';
 import { getSetting, setSetting, copyTextToClipboard } from './utils.js';
 import { showContextMenu } from './context-menu';
 import { appendRegisterCall, getIsPlayingFromPlayStateEvent, getPlayerButton, isPlayerPlaying, removeRegisterCall } from './ncm-compat.js';
+import { useRnpLyricPageOpen } from './rnp-page-state.js';
 import './lyrics.scss';
-
-import _isEqual from 'lodash/isEqual';
 
 const useState = React.useState;
 const useEffect = React.useEffect;
@@ -19,6 +18,30 @@ const nowInMs = () => (
 		: Date.now()
 );
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
+const VIRTUALIZED_LYRIC_MIN_LINES = 90;
+const VIRTUALIZED_LYRIC_WINDOW_BEFORE = 24;
+const VIRTUALIZED_LYRIC_WINDOW_AFTER = 30;
+const VIRTUALIZED_LYRIC_SCROLLING_EXTRA = 12;
+
+const estimateLyricLineHeight = (line, options) => {
+	const fontSize = Math.max(1, Number(options.fontSize) || 32);
+	const baseLineHeight = fontSize * 1.2;
+	if (!line || line.isInterlude || (!line.originalLyric && !line.dynamicLyric)) {
+		return Math.ceil(baseLineHeight);
+	}
+
+	let height = line.dynamicLyric && options.useKaraokeLyrics
+		? fontSize * (options.karaokeAnimation === 'slide' ? 1.5 : 1.2)
+		: baseLineHeight;
+	const gap = fontSize * 0.3;
+	if (options.showRomaji && line.romanLyric) {
+		height += gap + fontSize * 0.72;
+	}
+	if (options.showTranslation && line.translatedLyric) {
+		height += gap + baseLineHeight;
+	}
+	return Math.ceil(Math.max(baseLineHeight, height));
+};
 
 const customOpacityFunc = localStorage.getItem('rnp-custom-opacity-func', null) ? new Function('offset', localStorage.getItem('rnp-custom-opacity-func')) : null;
 const customBlurFunc = localStorage.getItem('rnp-custom-blur-func', null) ? new Function('offset', localStorage.getItem('rnp-custom-blur-func')) : null;
@@ -34,6 +57,7 @@ const useRefState = (initialValue) => {
 }
 
 export function Lyrics(props) {
+	const pageOpen = useRnpLyricPageOpen();
 	const getPlayState = () => {
 		return isPlayerPlaying();
 	}
@@ -57,6 +81,8 @@ export function Lyrics(props) {
 	const [playState, setPlayState] = useState(getPlayState());
 	const _playState = useRef(getPlayState());
 	const [songId, setSongId] = useState("0");
+	const pendingSongId = useRef("0");
+	const pageOpenRef = useRef(pageOpen);
 	const currentTime = useRef(0); // 当前播放时间
 	const currentTimeAnchor = useRef(nowInMs());
 	const [seekCounter, setSeekCounter] = useState(0); // 拖动进度条时修改触发重渲染
@@ -123,6 +149,10 @@ export function Lyrics(props) {
 	);
 
 	const isCurrentModeSession = () => true;
+
+	useEffect(() => {
+		pageOpenRef.current = pageOpen;
+	}, [pageOpen]);
 
 	const getLiveCurrentTimeRaw = useCallback(() => {
 		const elapsed = _playState.current ? Math.max(0, nowInMs() - currentTimeAnchor.current) : 0;
@@ -213,7 +243,7 @@ export function Lyrics(props) {
 		}
 		heightOfItems.current = heights;
 		//console.log('heightOfItems', heightOfItems.current);
-	}, [lyrics, containerWidth, fontSize, showTranslation, showRomaji, useKaraokeLyrics, karaokeAnimation, recalcCounter]);
+	}, [lyrics, containerWidth, fontSize, showTranslation, showRomaji, useKaraokeLyrics, karaokeAnimation, currentLine, scrollingMode, scrollingFocusLine, recalcCounter]);
 
 	const recalcHeightOfItems = () => {
 		if (!lyrics) return;
@@ -430,6 +460,10 @@ export function Lyrics(props) {
 		currentTime.current = getLiveCurrentTimeRaw();
 		currentTimeAnchor.current = nowInMs();
 		_playState.current = getIsPlayingFromPlayStateEvent(state) ?? getPlayState();
+		pendingSongId.current = id;
+		if (!pageOpenRef.current) {
+			return;
+		}
 		setPlayState(_playState.current);
 		setSongId(id);
 	};
@@ -445,6 +479,9 @@ export function Lyrics(props) {
 		const lastTime = getLiveCurrentTimeRaw() + _globalOffset.current;
 		currentTime.current = ((progress * 1000) || 0);
 		currentTimeAnchor.current = nowInMs();
+		if (!pageOpenRef.current) {
+			return;
+		}
 		const currentTimeWithOffset = currentTime.current + _globalOffset.current;
 		if (!_lyrics.current) return;
 		let startIndex = 0;
@@ -490,8 +527,13 @@ export function Lyrics(props) {
 		setCurrentLineForScrolling(curForScrolling);
 	};
 	useEffect(() => {
-		onPlayProgress(songId, getLiveCurrentTimeRaw() / 1000);
-	}, [lyrics, globalOffset]);
+		if (!pageOpen) return;
+		setPlayState(_playState.current);
+		if (pendingSongId.current) {
+			setSongId(pendingSongId.current);
+		}
+		onPlayProgress(pendingSongId.current || songId, getLiveCurrentTimeRaw() / 1000);
+	}, [lyrics, globalOffset, pageOpen]);
 
 
 	useEffect(() => {
@@ -727,6 +769,15 @@ export function Lyrics(props) {
 	}, [overviewContainerRef]);
 
 	const length = lyrics?.length ?? 0;
+	const virtualFocusLine = scrollingMode ? scrollingFocusLine : currentLine;
+	const shouldVirtualizeMainLyrics = length > VIRTUALIZED_LYRIC_MIN_LINES;
+	const virtualWindowExtra = scrollingMode ? VIRTUALIZED_LYRIC_SCROLLING_EXTRA : 0;
+	const virtualStart = Math.max(0, virtualFocusLine - VIRTUALIZED_LYRIC_WINDOW_BEFORE - virtualWindowExtra);
+	const virtualEnd = Math.min(length - 1, virtualFocusLine + VIRTUALIZED_LYRIC_WINDOW_AFTER + virtualWindowExtra);
+	const shouldRenderMainLyricLine = (index) => (
+		!shouldVirtualizeMainLyrics
+		|| index >= virtualStart && index <= virtualEnd
+	);
 
 	return (
 		<>
@@ -737,6 +788,25 @@ export function Lyrics(props) {
 					fontSize: `${fontSize}px`,
 				}}>
 				{lyrics && lyrics.map((line, index) => {
+					const transforms = lineTransforms[index] ?? { top: 0, scale: 1, delay: 0, blur: 0 };
+					const outOfRangeScrolling = scrollingMode && length > 100 && Math.abs(index - scrollingFocusLine) > 20;
+					if (!shouldRenderMainLyricLine(index)) {
+						return <LinePlaceholder
+							key={`${songId} ${index}`}
+							id={index}
+							line={line}
+							currentLine={currentLine}
+							transforms={transforms}
+							outOfRangeScrolling={outOfRangeScrolling}
+							height={estimateLyricLineHeight(line, {
+								fontSize,
+								showTranslation,
+								showRomaji,
+								useKaraokeLyrics,
+								karaokeAnimation,
+							})}
+						/>
+					}
 					return <Line
 						key={`${songId} ${index}`}
 						id={index}
@@ -745,16 +815,17 @@ export function Lyrics(props) {
 						currentTime={currentTime.current + globalOffset}
 						getCurrentTime={getLiveCurrentTime}
 						seekCounter={seekCounter}
-						playState={playState}
+						playState={playState && pageOpen}
 						showTranslation={showTranslation}
 						showRomaji={showRomaji}
 						useKaraokeLyrics={useKaraokeLyrics}
 						jumpToTime={isPureMusic ? () => {} : jumpToTime}
-						transforms={lineTransforms[index] ?? { top: 0, scale: 1, delay: 0, blur: 0 }}
+						transforms={transforms}
 						karaokeAnimation={karaokeAnimation}
-						outOfRangeScrolling={scrollingMode && length > 100 && Math.abs(index - scrollingFocusLine) > 20}
+						outOfRangeScrolling={outOfRangeScrolling}
 						outOfRangeKaraoke={/*length > 100 && */Math.abs(index - currentLine) > 10}
 						lyricGlow={lyricGlow}
+						pageOpen={pageOpen}
 					/>
 				})}
 				<Contributors
@@ -877,6 +948,33 @@ export function Lyrics(props) {
 				/>
 			}
 		</>
+	);
+}
+
+function LinePlaceholder(props) {
+	const offset = props.id - props.currentLine;
+	return (
+		<div
+			className={`rnp-lyrics-line rnp-lyrics-line-placeholder ${props.line?.isInterlude ? 'rnp-interlude' : ''}`}
+			offset={offset}
+			style={{
+				display: props.outOfRangeScrolling ? 'none' : 'block',
+				height: `${props.height}px`,
+				pointerEvents: 'none',
+				visibility: 'hidden',
+				transform: `
+					${props.transforms.left ? `translateX(${props.transforms.left}px)` : ''}
+					translateY(${props.transforms.top + (props.transforms?.extraTop ?? 0)}px)
+					scale(${props.transforms.scale})
+					${props.transforms.rotate ? `rotate(${props.transforms.rotate}deg)` : ''}
+				`,
+				transitionDelay: `${props.transforms.delay}ms`,
+				transitionDuration: `${props.transforms?.duration ?? 500}ms`,
+				filter: props.transforms?.blur ? `blur(${props.transforms?.blur}px)` : 'none',
+				opacity: props.transforms?.opacity ?? 1,
+				...props.transforms?.outOfRangeHidden && {visibility: 'hidden'}
+			}}
+		/>
 	);
 }
 
@@ -1005,6 +1103,7 @@ function Line(props) {
 
 	const glowAnimationsRef = useRef([]);
 	useEffect(() => {
+		if (!props.pageOpen) return;
 		if (!props.lyricGlow) return;
 
 		if (!props.line?.dynamicLyric) return;
@@ -1063,10 +1162,16 @@ function Line(props) {
 			}
 			glowAnimationsRef.current = [];
 		};
-	}, [props.line, props.useKaraokeLyrics, props.outOfRangeKaraoke, props.karaokeAnimation, props.lyricGlow]);
+	}, [props.line, props.useKaraokeLyrics, props.outOfRangeKaraoke, props.karaokeAnimation, props.lyricGlow, props.pageOpen]);
 
 	// update glow animation
 	useEffect(() => {
+		if (!props.pageOpen) {
+			for (let glowAnimation of glowAnimationsRef.current) {
+				glowAnimation.animation.pause();
+			}
+			return;
+		}
 		for (let glowAnimation of glowAnimationsRef.current) {
 			//console.log(glowAnimation, glowAnimationsRef.current);
 			const animation = glowAnimation.animation;
@@ -1096,7 +1201,7 @@ function Line(props) {
 			//console.log(effectiveCurrentTime, timing.wordTime, effectiveCurrentTime - timing.wordTime);
 		}
 
-	}, [props.currentLine, props.useKaraokeLyrics, props.seekCounter, props.karaokeAnimation, props.playState, props.lyricGlow, effectiveCurrentTime]);
+	}, [props.currentLine, props.useKaraokeLyrics, props.seekCounter, props.karaokeAnimation, props.playState, props.lyricGlow, props.pageOpen, effectiveCurrentTime]);
 
 
 	return (
@@ -1192,6 +1297,7 @@ function Line(props) {
 				getCurrentTime={getDisplayedCurrentTime}
 				seekCounter={props.seekCounter}
 				playState={props.playState}
+				pageOpen={props.pageOpen}
 			/> }
 		</div>
 	)
@@ -1236,7 +1342,7 @@ function Interlude(props) {
 	}, [getDisplayedCurrentTime, props.currentLine, props.id, props.seekCounter, props.playState]);
 
 	useEffect(() => {
-		if (props.currentLine !== props.id || !props.playState) {
+		if (!props.pageOpen || props.currentLine !== props.id || !props.playState) {
 			return;
 		}
 		let rafId = 0;
@@ -1248,7 +1354,7 @@ function Interlude(props) {
 		return () => {
 			cancelAnimationFrame(rafId);
 		};
-	}, [props.currentLine, props.id, props.playState, props.seekCounter, getDisplayedCurrentTime]);
+	}, [props.currentLine, props.id, props.playState, props.pageOpen, props.seekCounter, getDisplayedCurrentTime]);
 
 	return (
 		<div

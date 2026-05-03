@@ -5,7 +5,7 @@ import settingsMenuHTML from './settings-menu.html';
 import manifest from './manifest.json';
 import './settings-menu.scss';
 import { argb2Rgb, rgb2Argb } from './color-utils.js';
-import { getSetting, setSetting, chunk, copyTextToClipboard } from './utils.js';
+import { getSetting, setSetting, copyTextToClipboard } from './utils.js';
 import { Background } from './background.js';
 import { CoverShadow } from './cover-shadow.js';
 import { Lyrics } from './lyrics.js';
@@ -47,18 +47,37 @@ const useGreyAccentColor = () => {
 	updateAccentColor('rnp-accent-color-bg-light', rgb2Argb(190, 190, 190));
 }
 
+const ACCENT_COLOR_SAMPLE_SIZE = 32;
+const accentColorCanvas = document.createElement('canvas');
+accentColorCanvas.width = ACCENT_COLOR_SAMPLE_SIZE;
+accentColorCanvas.height = ACCENT_COLOR_SAMPLE_SIZE;
 let lastDom = null;
 const calcAccentColor = (dom) => {
-	lastDom = dom.cloneNode(true);
+	lastDom = dom;
 
-	const canvas = document.createElement('canvas');
-	canvas.width = 50;
-	canvas.height = 50;
-	const ctx = canvas.getContext('2d');
-	ctx.drawImage(dom, 0, 0, dom.naturalWidth, dom.naturalHeight, 0, 0, 50, 50);
-	const pixels = chunk(ctx.getImageData(0, 0, 50, 50).data, 4).map((pixel) => {
-		return ((pixel[3] << 24 >>> 0) | (pixel[0] << 16 >>> 0) | (pixel[1] << 8 >>> 0) | pixel[2]) >>> 0;
-	});
+	const ctx = accentColorCanvas.getContext('2d', { willReadFrequently: true });
+	ctx.clearRect(0, 0, ACCENT_COLOR_SAMPLE_SIZE, ACCENT_COLOR_SAMPLE_SIZE);
+	ctx.drawImage(
+		dom,
+		0,
+		0,
+		dom.naturalWidth,
+		dom.naturalHeight,
+		0,
+		0,
+		ACCENT_COLOR_SAMPLE_SIZE,
+		ACCENT_COLOR_SAMPLE_SIZE
+	);
+	const imageData = ctx.getImageData(0, 0, ACCENT_COLOR_SAMPLE_SIZE, ACCENT_COLOR_SAMPLE_SIZE).data;
+	const pixels = new Array(ACCENT_COLOR_SAMPLE_SIZE * ACCENT_COLOR_SAMPLE_SIZE);
+	for (let i = 0, pixelIndex = 0; i < imageData.length; i += 4, pixelIndex++) {
+		pixels[pixelIndex] = (
+			(imageData[i + 3] << 24 >>> 0)
+			| (imageData[i] << 16 >>> 0)
+			| (imageData[i + 1] << 8 >>> 0)
+			| imageData[i + 2]
+		) >>> 0;
+	}
 	const quantizedColors = QuantizerCelebi.quantize(pixels, 128);
 	const sortedQuantizedColors = Array.from(quantizedColors).sort((a, b) => b[1] - a[1]);
 
@@ -1672,6 +1691,8 @@ const scheduleV3LyricPageInfoUpdate = () => {
 
 const getV3LyricPage = () => document.querySelector(`#${RNP_VIEW_ID} .g-single`);
 const getRnpView = () => document.getElementById(RNP_VIEW_ID);
+let v3LyricPagePatchPromise = null;
+let ensureV3LyricPagePatched = async () => getV3LyricPage();
 let pendingCloseAfterNativeMenu = false;
 let pendingCloseAfterNativeMenuTimer = 0;
 
@@ -1799,8 +1820,14 @@ const openRnpLyricPage = () => {
 	document.body.classList.add(RNP_PAGE_OPEN_CLASS);
 	syncV3LyricPageState();
 	suppressNativeNowPlayingPage();
-	window.dispatchEvent(new Event('rnp-lyric-page-opened'));
-	scheduleV3LyricPageInfoUpdate();
+	void ensureV3LyricPagePatched()
+		.catch((error) => {
+			console.warn('Failed to patch V3 lyric page', error);
+		})
+		.finally(() => {
+			window.dispatchEvent(new Event('rnp-lyric-page-opened'));
+			scheduleV3LyricPageInfoUpdate();
+		});
 };
 
 const closeRnpLyricPage = () => {
@@ -2923,7 +2950,6 @@ plugin.onLoad(async (p) => {
 		return document.getElementById('root')?._reactRootContainer?._internalRoot?.current?.child?.child?.memoizedProps?.store;
 	});
 	injectV3LyricPage();
-	createV3LyricPage();
 
 	const patchNowPlayingPage = async () => {
 		const nowPlayingPage = getV3LyricPage();
@@ -3054,8 +3080,22 @@ plugin.onLoad(async (p) => {
 
 	};
 
+	// Keep the expensive React mounts off the startup path; install them on first open.
+	ensureV3LyricPagePatched = async () => {
+		const nowPlayingPage = createV3LyricPage();
+		if (!nowPlayingPage || nowPlayingPage.classList.contains('patched')) {
+			return nowPlayingPage;
+		}
+		if (!v3LyricPagePatchPromise) {
+			v3LyricPagePatchPromise = patchNowPlayingPage().finally(() => {
+				v3LyricPagePatchPromise = null;
+			});
+		}
+		await v3LyricPagePatchPromise;
+		return getV3LyricPage();
+	};
+
 	syncV3LyricPageState();
-	void patchNowPlayingPage();
 	document.addEventListener('lyrics-updated', scheduleV3LyricPageInfoUpdate);
 	window.addEventListener('rnp-lyric-page-opened', () => {
 		syncV3LyricPageState();
@@ -3159,7 +3199,6 @@ plugin.onConfig((tools) => {
 	return dom("div", {},
 		dom("span", { innerHTML: "打开正在播放界面以调整设置 " , style: { fontSize: "18px" } }),
 		tools.makeBtn("打开", async () => {
-			createV3LyricPage();
 			openRnpLyricPage();
 		}),
 		dom("div", { innerHTML: "" , style: { height: "20px" } }),

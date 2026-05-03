@@ -1,5 +1,3 @@
-import { findLast } from "lodash";
-
 export interface DynamicLyricWord {
 	time: number;
 	duration: number;
@@ -30,6 +28,15 @@ export interface LyricPureLine {
 	rawLyric?: string;
 	unsynced?: boolean;
 }
+
+const findLast = <T>(items: T[], predicate: (item: T, index: number, items: T[]) => boolean): T | null => {
+	for (let i = items.length - 1; i >= 0; i--) {
+		if (predicate(items[i], i, items)) {
+			return items[i];
+		}
+	}
+	return null;
+};
 
 
 export const PURE_MUSIC_LYRIC_LINE = [

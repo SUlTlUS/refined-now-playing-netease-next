@@ -22,6 +22,7 @@ import {
 } from './ncm-compat.js';
 import { createPortal } from 'react-dom';
 import { ProgressbarPreview } from './progressbar-preview.js';
+import { useRnpLyricPageOpen } from './rnp-page-state.js';
 import { V3Slider } from './v3-slider.js';
 
 const useEffect = React.useEffect;
@@ -615,6 +616,7 @@ function AmlLikePlayControls(props) {
 }
 
 export function V3PlayerControls(props) {
+	const pageOpen = useRnpLyricPageOpen();
 	const [songId, setSongId] = useState(getPlayingSongId());
 	const [isPlaying, setIsPlaying] = useState(isPlayerPlaying());
 	const [duration, setDuration] = useState(getDurationFromPlayingSong());
@@ -645,6 +647,7 @@ export function V3PlayerControls(props) {
 	}, [isDragging]);
 
 	useEffect(() => {
+		if (!pageOpen) return;
 		const footer = document.querySelector('footer');
 		const observer = new MutationObserver(syncAccessoryState);
 
@@ -663,9 +666,10 @@ export function V3PlayerControls(props) {
 			observer.disconnect();
 			removeRegisterCall('Load', 'audioplayer', syncAccessoryStateSoon);
 		};
-	}, []);
+	}, [pageOpen]);
 
 	useEffect(() => {
+		if (!pageOpen) return;
 		const syncTrackState = () => {
 			const currentSongId = getPlayingSongId();
 			const currentDuration = getDurationFromPlayingSong();
@@ -749,7 +753,7 @@ export function V3PlayerControls(props) {
 			window.removeEventListener('storage', syncVolumeState);
 			window.clearInterval(volumeSyncTimer);
 		};
-	}, []);
+	}, [pageOpen]);
 
 	useEffect(() => {
 		if (!isDragging) {

@@ -1,6 +1,7 @@
 import './background.scss';
 import { getGradientFromPalette } from './color-utils';
 import { appendRegisterCall, getIsPlayingFromPlayStateEvent, isPlayerPlaying, removeRegisterCall } from './ncm-compat.js';
+import { useRnpLyricPageOpen } from './rnp-page-state.js';
 import ColorThief from 'colorthief';
 
 const useState = React.useState;
@@ -113,8 +114,14 @@ function FluidBackground(props) {
 	const fluidContainer = useRef();
 	const staticFluidStyleRef = useRef();
 	const [songId, setSongId] = useState("0");
+	const pageOpen = useRnpLyricPageOpen();
+	const pageOpenRef = useRef(pageOpen);
 
 	const playState = useRef(isPlayerPlaying());
+
+	useEffect(() => {
+		pageOpenRef.current = pageOpen;
+	}, [pageOpen]);
 
 	const onPlayStateChange = (id, state) => {
 		playState.current = getIsPlayingFromPlayStateEvent(state) ?? isPlayerPlaying();
@@ -253,13 +260,19 @@ function FluidBackground(props) {
 
 		const request = useRef(0);
 		useEffect(() => {
+			if (!pageOpen) return;
 			const animate = () => {
 				request.current = requestAnimationFrame(animate);
-				if (!playState.current) return;
+				if (!pageOpenRef.current || !playState.current) return;
 				//processor.current.analyser.getFloatFrequencyData(processor.current.dataArray);
 				//const max = Math.max(...processor.current.dataArray);
 				loadedPlugins.LibFrontendPlay.currentAudioAnalyser.getFloatFrequencyData(processor.current.dataArray);
-				const max = Math.max(...processor.current.dataArray);
+				let max = -Infinity;
+				for (let i = 0; i < processor.current.dataArray.length; i++) {
+					if (processor.current.dataArray[i] > max) {
+						max = processor.current.dataArray[i];
+					}
+				}
 				//const percentage = (max - processor.current.analyser.minDecibels) / (processor.current.analyser.maxDecibels - processor.current.analyser.minDecibels);
 				const percentage = Math.pow(1.3, max / 20) * 2 - 1;
 				//console.log(max, percentage, processor.current.audio.volume);
@@ -269,7 +282,7 @@ function FluidBackground(props) {
 			return () => {
 				cancelAnimationFrame(request.current);
 			}
-		}, []);
+		}, [pageOpen]);
 	}
 	// Audio-responsive background (For LibVolumeLevelProvider)
 	else if (typeof(registerAudioLevelCallback) == "function") {
@@ -277,7 +290,7 @@ function FluidBackground(props) {
 		let maxq = [], minq = [];
 		let percentage;
 		const onAudioLevelChange = (value) => {
-			if (!playState.current) return;
+			if (!pageOpenRef.current || !playState.current) return;
 			now += 1;
 			if (now <= 100) {
 				audioLevels[now] = value;
@@ -315,12 +328,13 @@ function FluidBackground(props) {
 			setDisplacementScale(oldScale + (scale - oldScale) * 0.1);
 		}
 		useEffect(() => {
+			if (!pageOpen) return;
 			registerAudioLevelCallback(onAudioLevelChange);
 			return () => {
 				unregisterAudioLevelCallback(onAudioLevelChange);
 				setDisplacementScale(400);
 			}
-		}, []);
+		}, [pageOpen]);
 		useEffect(() => {
 			audioLevels = [];
 			audioLevelSum = 0;
