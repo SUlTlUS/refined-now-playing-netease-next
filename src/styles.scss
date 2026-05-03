@@ -1576,8 +1576,25 @@ body.hide-player-controls #rnp-view .rnp-cover-favorite-host {
 
 #rnp-view .g-single-track .g-singlec-ct .n-single .mn .head .inf .info ul li a {
 	font-size: 12px;
+	color: rgba(var(--rnp-accent-color-shade-2-rgb), 0.45) !important;
 	text-decoration: none !important;
+	transition: color 0.2s ease;
 	white-space: nowrap;
+}
+
+#rnp-view .g-single-track .g-singlec-ct .n-single .mn .head .inf .info ul li a:hover,
+#rnp-view .g-single-track .g-singlec-ct .n-single .mn .head .inf .info ul li a:focus-visible {
+	color: rgba(var(--rnp-accent-color-shade-2-rgb), 0.68) !important;
+	text-decoration: none !important;
+}
+
+#rnp-view .g-single-track .g-singlec-ct .n-single .mn .head .inf .info ul li .rnp-line-separator {
+	display: inline-block;
+	margin: 0 0.28em;
+	font-size: 12px;
+	line-height: 1.4;
+	color: rgba(var(--rnp-accent-color-shade-2-rgb), 0.45);
+	vertical-align: baseline;
 }
 
 #rnp-view .g-single-track .g-singlec-ct .n-single .mn .head .inf .info ul li .rnp-static-line-text {
@@ -1585,7 +1602,21 @@ body.hide-player-controls #rnp-view .rnp-cover-favorite-host {
 	font-size: 12px;
 	line-height: 1.4;
 	white-space: nowrap;
-	color: rgba(var(--rnp-accent-color-shade-2-rgb), 0.45);
+	color: rgba(var(--rnp-accent-color-shade-2-rgb), 0.45) !important;
+}
+
+#rnp-view .g-single-track .g-singlec-ct .n-single .mn .head .inf .info ul li a.rnp-artist-link::before,
+#rnp-view .g-single-track .g-singlec-ct .n-single .mn .head .inf .info ul li a.rnp-album-link::before,
+#rnp-view .g-single-track .g-singlec-ct .n-single .mn .head .inf .info ul li .rnp-static-line-artist::before,
+#rnp-view .g-single-track .g-singlec-ct .n-single .mn .head .inf .info ul li .rnp-static-line-album::before {
+	content: none !important;
+	display: none !important;
+	width: 0 !important;
+	height: 0 !important;
+	margin: 0 !important;
+	background: none !important;
+	-webkit-mask-image: none !important;
+	mask-image: none !important;
 }
 
 #rnp-view .g-single-track .g-singlec-ct .n-single .mn .head .inf .info ul li .rnp-static-line-text::before {

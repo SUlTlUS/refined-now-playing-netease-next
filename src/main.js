@@ -485,6 +485,14 @@ const getPlayingAlias = (playingSong) => {
 const getPlayingAlbumInfo = (playingSong) => {
 	const albumCandidates = [
 		{
+			id: playingSong?.resourceAlbum?.id,
+			name: playingSong?.resourceAlbum?.name,
+		},
+		{
+			id: playingSong?.resourceAlbumId,
+			name: playingSong?.resourceAlbumName,
+		},
+		{
 			id: playingSong?.curTrack?.album?.id,
 			name: playingSong?.curTrack?.album?.name,
 		},
@@ -567,7 +575,9 @@ const NATIVE_NAVIGABLE_SELECTOR = [
 	'[role="menuitem"]',
 	'[data-action]',
 	'[onclick]',
+	'[_nk]',
 	'.f-cp',
+	'.link',
 	'[tabindex]',
 ].join(',');
 const NATIVE_MORE_BUTTON_PATTERN = /more|\u66f4\u591a|menu|\u8be6\u60c5|\u5c55\u5f00/;
@@ -675,13 +685,9 @@ const fallbackNavigateWithinApp = (normalizedHref) => {
 	newURL.hash = nextHash;
 
 	try {
-		if (window.history?.pushState) {
-			window.history.pushState(window.history.state, '', nextHash);
-		} else {
-			window.location.hash = nextHash;
-		}
-	} catch (error) {
 		window.location.hash = nextHash;
+	} catch (error) {
+		window.location.href = nextHash;
 	}
 
 	if (window.location.hash !== nextHash) {
@@ -728,6 +734,14 @@ const appendLineText = (container, label, className = '') => {
 	}
 	container.appendChild(text);
 	return text;
+};
+
+const appendLineSeparator = (container, label = '/', className = 'rnp-line-separator') => {
+	const separator = document.createElement('span');
+	separator.textContent = label;
+	separator.className = className;
+	container.appendChild(separator);
+	return separator;
 };
 
 const getVisibleNativeBottomBar = () => (
@@ -783,14 +797,251 @@ const armCloseAfterNativeMenu = () => {
 	}, 8000);
 };
 
-const clickNativeNavigationTarget = (target) => {
-	if (!target || !isVisibleElement(target)) {
+const activateNativeNavigationTarget = (target, { allowHidden = false } = {}) => {
+	if (!target || (!allowHidden && !isVisibleElement(target))) {
 		return false;
 	}
+	return clickDomElement(target, allowHidden ? null : getElementCenterPoint(target));
+};
+
+const clickNativeNavigationTarget = (target) => {
+	return activateNativeNavigationTarget(target);
+};
+
+const clickNativePageJumpTarget = (target) => {
+	if (!target) {
+		return false;
+	}
+	restoreNativeNowPlayingPage();
 	return clickDomElement(target, getElementCenterPoint(target));
 };
 
+const revealNativeNowPlayingPageForJump = (target) => {
+	const page = target?.closest?.('#root .g-single');
+	if (!page || page.closest?.(`#${RNP_VIEW_ID}`)) {
+		return;
+	}
+	page.classList.add('z-show');
+	page.removeAttribute('aria-hidden');
+	if (page.dataset.rnpHidden === 'true') {
+		delete page.dataset.rnpHidden;
+	}
+	page.style.removeProperty('visibility');
+	page.style.removeProperty('pointer-events');
+	page.style.removeProperty('opacity');
+};
+
+const getReactProps = (element) => {
+	if (!element) {
+		return null;
+	}
+	const reactPropsKey = Object.keys(element).find((key) => (
+		key.startsWith('__reactProps$')
+		|| key.startsWith('__reactEventHandlers$')
+	));
+	return reactPropsKey ? element[reactPropsKey] : null;
+};
+
+const createSyntheticNativeEvent = (target, type = 'click') => {
+	let defaultPrevented = false;
+	let propagationStopped = false;
+	return {
+		type,
+		target,
+		currentTarget: target,
+		nativeEvent: new MouseEvent(type, {
+			bubbles: true,
+			cancelable: true,
+			composed: true,
+			view: window,
+			button: 0,
+			...getElementCenterPoint(target),
+		}),
+		preventDefault() {
+			defaultPrevented = true;
+		},
+		stopPropagation() {
+			propagationStopped = true;
+		},
+		stopImmediatePropagation() {
+			propagationStopped = true;
+		},
+		isDefaultPrevented() {
+			return defaultPrevented;
+		},
+		isPropagationStopped() {
+			return propagationStopped;
+		},
+		persist() {},
+	};
+};
+
+const invokeReactJumpHandler = (target) => {
+	for (let node = target; node && node !== document.body; node = node.parentElement) {
+		if (node.closest?.(`#${RNP_VIEW_ID}`)) {
+			return false;
+		}
+		const props = getReactProps(node);
+		const handler = props?.onClick ?? props?.onMouseUp ?? props?.onPointerUp;
+		if (typeof handler !== 'function') {
+			continue;
+		}
+		try {
+			revealNativeNowPlayingPageForJump(node);
+			handler.call(node, createSyntheticNativeEvent(node, 'click'));
+			return true;
+		} catch (error) {
+			console.debug('Failed to invoke native React jump handler', error);
+		}
+	}
+	return false;
+};
+
+const getNativeJumpDescriptor = (element) => normalizeComparableText([
+	getElementDescriptor(element),
+	element?.getAttribute?.('_nk'),
+	element?.getAttribute?.('href'),
+].join(' '));
+
+const getNativeJumpText = (element) => normalizeComparableText(
+	element?.getAttribute?.('title') || element?.textContent
+);
+
+const findNativeArtistJumpTarget = (artist) => {
+	const artistName = normalizeComparableText(artist?.name);
+	const artistId = normalizeComparableText(artist?.id);
+	if (!artistName) {
+		return null;
+	}
+
+	const candidates = sortElementsByPosition(
+		Array.from(document.querySelectorAll('.author span, .author [_nk], .author .link, .author'))
+			.filter((element) => (
+				!element.closest(`#${RNP_VIEW_ID}`)
+				&& isVisibleElement(element)
+				&& normalizeText(element.textContent)
+			))
+	);
+	const scoredTargets = new Map();
+
+	for (const element of candidates) {
+		const text = getNativeJumpText(element);
+		const descriptor = getNativeJumpDescriptor(element);
+		if (!text || (!text.includes(artistName) && !(artistId && descriptor.includes(artistId)))) {
+			continue;
+		}
+
+		const target = element.matches?.('[_nk], .link, a, button, [role="button"]')
+			? element
+			: getNavigableAncestor(element, element.closest('.author') ?? document.body) ?? element;
+		if (!target || target.closest?.(`#${RNP_VIEW_ID}`) || scoredTargets.has(target) || !isVisibleElement(target)) {
+			continue;
+		}
+
+		const targetText = getNativeJumpText(target);
+		const targetDescriptor = getNativeJumpDescriptor(target);
+		let score = 0;
+		if (targetText === artistName) {
+			score += 30;
+		} else if (text === artistName) {
+			score += 24;
+		} else if (targetText.includes(artistName) || text.includes(artistName)) {
+			score += 10;
+		}
+		if (artistId && targetDescriptor.includes(artistId)) {
+			score += 16;
+		}
+		if (target.matches?.('[_nk]')) {
+			score += 10;
+		}
+		if (target.closest?.('.author')) {
+			score += 8;
+		}
+		if (targetText.includes('/') || targetText.includes(',')) {
+			score -= 8;
+		}
+		if (score > 0) {
+			scoredTargets.set(target, score);
+		}
+	}
+
+	return [...scoredTargets.entries()]
+		.sort((first, second) => second[1] - first[1])
+		.map(([target]) => target)[0] ?? null;
+};
+
+const findNativeAlbumJumpTarget = (album) => {
+	const albumName = normalizeComparableText(album?.name);
+	const albumId = normalizeComparableText(album?.id);
+	const candidates = sortElementsByPosition(
+		Array.from(document.querySelectorAll('#root .g-single ul.info-line > li.info.album > span.link[_nk], #root .g-single ul.info-line > li.info.album span.link[_nk]'))
+			.filter((element) => (
+				!element.closest(`#${RNP_VIEW_ID}`)
+				&& normalizeText(element.textContent || element.getAttribute?.('title'))
+			))
+	);
+	const scoredTargets = new Map();
+
+	for (const element of candidates) {
+		const text = getNativeJumpText(element);
+		const descriptor = getNativeJumpDescriptor(element);
+		if (
+			(albumName || albumId)
+			&&
+			(albumName && !text.includes(albumName) && !descriptor.includes(albumName))
+			&& (!albumId || !descriptor.includes(albumId))
+		) {
+			continue;
+		}
+
+		const target = element.matches?.('ul.info-line > li.info.album > span.link[_nk], ul.info-line > li.info.album span.link[_nk]')
+			? element
+			: null;
+		if (!target || target.closest?.(`#${RNP_VIEW_ID}`) || scoredTargets.has(target)) {
+			continue;
+		}
+
+		const targetText = getNativeJumpText(target);
+		const targetDescriptor = getNativeJumpDescriptor(target);
+		let score = 0;
+		if (target.matches?.('ul.info-line > li.info.album > span.link[_nk]')) {
+			score += 60;
+		}
+		if (target.closest?.('.g-single')?.dataset?.rnpHidden === 'true') {
+			score += 18;
+		}
+		if (albumName && targetText === albumName) {
+			score += 30;
+		} else if (albumName && (targetText.includes(albumName) || text.includes(albumName))) {
+			score += 14;
+		}
+		if (albumId && targetDescriptor.includes(albumId)) {
+			score += 16;
+		}
+		if (target.matches?.('[_nk]')) {
+			score += 10;
+		}
+		if (target.matches?.('.link') || target.closest?.('ul.info-line > li.info.album')) {
+			score += 8;
+		}
+		if (score > 0) {
+			scoredTargets.set(target, score);
+		}
+	}
+
+	return [...scoredTargets.entries()]
+		.sort((first, second) => second[1] - first[1])
+		.map(([target]) => target)[0]
+		?? candidates.find((element) => element.matches?.('ul.info-line > li.info.album > span.link[_nk]'))
+		?? null;
+};
+
 const findNativeArtistTarget = (artist) => {
+	const pageJumpTarget = findNativeArtistJumpTarget(artist);
+	if (pageJumpTarget) {
+		return pageJumpTarget;
+	}
+
 	const footer = getVisibleNativeBottomBar();
 	const artistName = normalizeComparableText(artist?.name);
 	const artistId = normalizeComparableText(artist?.id);
@@ -937,6 +1188,66 @@ const findNativeAlbumMenuTarget = (album) => {
 		.map(([target]) => target)[0] ?? null;
 };
 
+const findNativeAlbumInfoTarget = (album) => {
+	const albumId = normalizeComparableText(album?.id);
+	const albumName = normalizeComparableText(album?.name);
+	const candidates = Array.from(document.querySelectorAll([
+		'li.info.album .link',
+		'.info.album .link',
+		'[class~="info"][class~="album"] .link',
+		'.g-single [class*="album"] .link',
+	].join(',')))
+		.filter((element) => (
+			!element.closest(`#${RNP_VIEW_ID}`)
+			&& !element.closest(NATIVE_BOTTOM_BAR_SELECTOR)
+		));
+	const scoredTargets = candidates
+		.map((element) => {
+			const row = element.closest('li.info.album, .info.album, [class~="info"][class~="album"]');
+			const descriptor = `${getElementDescriptor(element)} ${getElementDescriptor(row)}`;
+			const text = normalizeComparableText(
+				element.textContent
+				|| element.getAttribute?.('title')
+				|| element.getAttribute?.('aria-label')
+			);
+			let score = 0;
+			if (albumName && text === albumName) {
+				score += 16;
+			} else if (albumName && text.includes(albumName)) {
+				score += 10;
+			}
+			if (albumName && descriptor.includes(albumName)) {
+				score += 4;
+			}
+			if (albumId && descriptor.includes(albumId)) {
+				score += 6;
+			}
+			if (row) {
+				score += 12;
+			}
+			if (/\u4e13\u8f91|album/.test(normalizeText(row?.textContent) || descriptor)) {
+				score += 6;
+			}
+			if (element.closest('.g-single')) {
+				score += 4;
+			}
+			if (element.closest('[data-rnp-hidden="true"]')) {
+				score += 4;
+			}
+			if (/\blink\b/.test(element.className || '')) {
+				score += 2;
+			}
+			if (/artist|\u6b4c\u624b|author|playlist|queue|\u64ad\u653e\u5217\u8868/.test(descriptor)) {
+				score -= 12;
+			}
+			return { element, score };
+		})
+		.filter(({ score }) => score > 0)
+		.sort((first, second) => second.score - first.score);
+
+	return scoredTargets[0]?.element ?? null;
+};
+
 const waitForNativeMenu = (delay = 80) => new Promise((resolve) => {
 	window.setTimeout(resolve, delay);
 });
@@ -950,9 +1261,6 @@ const openArtistFromNativeUI = (artist, fallbackHref = '') => {
 };
 
 const openArtistFromPluginLink = (artist, fallbackHref = '') => {
-	if (fallbackHref) {
-		return navigateWithinApp(fallbackHref);
-	}
 	return openArtistFromNativeUI(artist, fallbackHref);
 };
 
@@ -965,7 +1273,27 @@ const openMoreFromNativeUI = () => {
 	return false;
 };
 
+const openAlbumInfoTargetFromNativeUI = async (albumInfoTarget, fallbackHref = '') => {
+	if (!albumInfoTarget) {
+		return false;
+	}
+
+	closeRnpLyricPage();
+	await waitForNativeMenu(32);
+	const clicked = clickNativeNavigationTarget(albumInfoTarget)
+		|| activateNativeNavigationTarget(albumInfoTarget, { allowHidden: true });
+	if (clicked) {
+		return true;
+	}
+	return false;
+};
+
 const openAlbumFromNativeUI = async (album, fallbackHref = '') => {
+	const albumInfoTarget = findNativeAlbumInfoTarget(album);
+	if (await openAlbumInfoTargetFromNativeUI(albumInfoTarget, fallbackHref)) {
+		return true;
+	}
+
 	const moreButton = findNativeMoreButton();
 	if (clickNativeNavigationTarget(moreButton)) {
 		await waitForNativeMenu();
@@ -974,17 +1302,26 @@ const openAlbumFromNativeUI = async (album, fallbackHref = '') => {
 			return closeRnpLyricPageSoon();
 		}
 	}
-	return navigateWithinApp(fallbackHref);
+	return false;
 };
 
-const appendLineLink = (container, label, { href = '', onNavigate = null } = {}) => {
+const appendLineLink = (container, label, { href = '', onNavigate = null, className = '' } = {}) => {
 	const link = document.createElement('a');
 	link.href = href || 'javascript:void(0)';
+	if (className) {
+		link.className = className;
+	}
 	const text = document.createElement('span');
 	text.textContent = label;
 	link.appendChild(text);
 	if (href || typeof onNavigate === 'function') {
+		let lastNavigationAt = 0;
 		const triggerNavigation = () => {
+			const now = Date.now();
+			if (now - lastNavigationAt < 120) {
+				return true;
+			}
+			lastNavigationAt = now;
 			if (typeof onNavigate === 'function') {
 				const handled = onNavigate();
 				if (handled) {
@@ -996,6 +1333,7 @@ const appendLineLink = (container, label, { href = '', onNavigate = null } = {})
 		link.addEventListener('click', (event) => {
 			event.preventDefault();
 			event.stopPropagation();
+			triggerNavigation();
 		});
 		link.addEventListener('mouseup', (event) => {
 			event.preventDefault();
@@ -1263,25 +1601,40 @@ const updateV3LyricPageInfo = () => {
 		clearElementChildren(playfrom);
 
 		const artistLine = document.createElement('li');
-		for (const artist of info.artists) {
+		artistLine.classList.add('rnp-artist-line');
+		for (const [index, artist] of info.artists.entries()) {
 			const artistHref = artist.id ? `#/m/artist/?id=${artist.id}` : '';
+			if (index > 0) {
+				appendLineSeparator(artistLine);
+			}
 			appendLineLink(
 				artistLine,
 				artist.name,
 				{
 					href: artistHref,
 					onNavigate: () => openArtistFromPluginLink(artist, artistHref),
+					className: 'rnp-artist-link',
 				}
 			);
 		}
 		if (artistLine.childNodes.length === 0) {
 			const artistName = document.createElement('span');
+			artistName.className = 'rnp-static-line-text rnp-static-line-artist';
 			artistName.textContent = info.artistText;
 			artistLine.appendChild(artistName);
 		}
 
 		const albumLine = document.createElement('li');
-		appendLineText(albumLine, info.album.name || 'Unknown Album', 'rnp-static-line-text rnp-static-line-album');
+		const albumHref = info.album.id ? `#/m/album/?id=${info.album.id}` : '';
+		appendLineLink(
+			albumLine,
+			info.album.name || 'Unknown Album',
+			{
+				href: albumHref,
+				onNavigate: info.album.name ? () => openAlbumFromNativeUI(info.album, albumHref) : null,
+				className: 'rnp-album-link rnp-static-line-album',
+			}
+		);
 
 		const sourceLine = document.createElement('li');
 		sourceLine.classList.add('rnp-song-id-line');

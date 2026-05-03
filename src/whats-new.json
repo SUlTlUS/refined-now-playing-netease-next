@@ -1,5 +1,11 @@
 [
 	{
+		"version": "3.0.1",
+		"changes": [
+			[ "fix", "修复歌手和专辑跳转问题", true ]
+		]
+	},
+	{
 		"version": "3.0.0",
 		"changes": [
 			[ "fix", "适配新版网易云音乐", true ]
