@@ -15,7 +15,7 @@ import { whatsNew } from './whats-new.js';
 import { showContextMenu } from './context-menu.js';
 import { MiniSongInfo } from './mini-song-info.js';
 import { FontSettings } from './font-settings.js';
-import { appendRegisterCall, getNCMStore, getPlayingSong, getPlayingSongId } from './ncm-compat.js';
+import { appendRegisterCall, fetchSongDetailBySongId, getNCMStore, getPlayingSong, getPlayingSongId } from './ncm-compat.js';
 import { createRoot } from 'react-dom/client';
 import { V3PlayerControls } from './v3-player-controls.js';
 
@@ -474,31 +474,113 @@ const getPlayingArtists = (playingSong) => {
 	return [];
 };
 
-const getPlayingAlias = (playingSong) => {
-	const aliasCandidates = [
-		playingSong?.curTrack?.alia,
-		playingSong?.curTrack?.alias,
-		playingSong?.curTrack?.transNames,
-		playingSong?.originFromTrack?.alias,
-		playingSong?.data?.alias,
-	];
-
-	for (const candidate of aliasCandidates) {
+const getFirstPlayingName = (candidates) => {
+	for (const candidate of candidates) {
 		if (Array.isArray(candidate)) {
-			const alias = candidate.map((value) => normalizeText(value)).filter(Boolean).join(' / ');
-			if (alias) {
-				return alias;
+			const name = candidate.map((value) => normalizeText(value)).filter(Boolean).join(' / ');
+			if (name) {
+				return name;
 			}
 			continue;
 		}
 
-		const alias = normalizeText(candidate);
-		if (alias) {
-			return alias;
+		const name = normalizeText(candidate);
+		if (name) {
+			return name;
 		}
 	}
 
 	return '';
+};
+
+const getPlayingAlias = (playingSong, songDetail = null) => {
+	const alias = getFirstPlayingName([
+		songDetail?.alia,
+		songDetail?.alias,
+		playingSong?.curTrack?.alia,
+		playingSong?.curTrack?.alias,
+		playingSong?.originFromTrack?.alia,
+		playingSong?.originFromTrack?.alias,
+		playingSong?.data?.alia,
+		playingSong?.data?.alias,
+		playingSong?.alia,
+		playingSong?.alias,
+	]);
+	const translation = getFirstPlayingName([
+		songDetail?.transNames,
+		songDetail?.tns,
+		playingSong?.curTrack?.transNames,
+		playingSong?.curTrack?.tns,
+		playingSong?.originFromTrack?.transNames,
+		playingSong?.originFromTrack?.tns,
+		playingSong?.data?.transNames,
+		playingSong?.data?.tns,
+		playingSong?.transNames,
+		playingSong?.tns,
+	]);
+	const displayMode = getSetting('song-alias-display-mode', 'alias-first');
+
+	if (displayMode === 'translation-first') {
+		return translation || alias;
+	}
+	if (displayMode === 'both') {
+		return Array.from(new Set([alias, translation].filter(Boolean))).join(' / ');
+	}
+	return alias || translation;
+};
+
+let cachedPlayingSongDetailId = '';
+let cachedPlayingSongDetail = null;
+let pendingPlayingSongDetailId = '';
+let playingSongDetailAbortController = null;
+let failedPlayingSongDetailId = '';
+let failedPlayingSongDetailAt = 0;
+
+const getCachedPlayingSongDetail = (songId) => (
+	normalizeText(songId) === cachedPlayingSongDetailId ? cachedPlayingSongDetail : null
+);
+
+const requestPlayingSongDetail = (songId) => {
+	const normalizedSongId = normalizeText(songId);
+	if (!/^\d+$/.test(normalizedSongId)) {
+		return null;
+	}
+	if (cachedPlayingSongDetailId === normalizedSongId || pendingPlayingSongDetailId === normalizedSongId) {
+		return null;
+	}
+	if (failedPlayingSongDetailId === normalizedSongId && Date.now() - failedPlayingSongDetailAt < 30000) {
+		return null;
+	}
+
+	playingSongDetailAbortController?.abort();
+	const abortController = new AbortController();
+	playingSongDetailAbortController = abortController;
+	pendingPlayingSongDetailId = normalizedSongId;
+
+	return fetchSongDetailBySongId(normalizedSongId, { signal: abortController.signal })
+		.then((songDetail) => {
+			if (abortController.signal.aborted) {
+				return null;
+			}
+			pendingPlayingSongDetailId = '';
+			if (!songDetail) {
+				return null;
+			}
+			cachedPlayingSongDetailId = normalizedSongId;
+			cachedPlayingSongDetail = songDetail;
+			failedPlayingSongDetailId = '';
+			failedPlayingSongDetailAt = 0;
+			return songDetail;
+		})
+		.catch((error) => {
+			if (!abortController.signal.aborted) {
+				pendingPlayingSongDetailId = '';
+				failedPlayingSongDetailId = normalizedSongId;
+				failedPlayingSongDetailAt = Date.now();
+				console.debug(`Failed to fetch song detail for ${normalizedSongId}`, error);
+			}
+			return null;
+		});
 };
 
 const getPlayingAlbumInfo = (playingSong) => {
@@ -565,6 +647,7 @@ const getCurrentPlayingInfo = () => {
 	const artists = getPlayingArtists(playingSong);
 	const album = getPlayingAlbumInfo(playingSong);
 	const songId = getPlayingSongId();
+	const songDetail = getCachedPlayingSongDetail(songId);
 	const title = normalizeText(
 		playingSong?.resourceName
 		?? playingSong?.name
@@ -577,7 +660,7 @@ const getCurrentPlayingInfo = () => {
 		title,
 		artists,
 		artistText: artists.map((artist) => artist.name).join(' / ') || 'Unknown Artist',
-		alias: getPlayingAlias(playingSong),
+		alias: getPlayingAlias(playingSong, songDetail),
 		album,
 		coverUrl: getPlayingCoverUrl(playingSong),
 	};
@@ -1596,6 +1679,14 @@ const updateV3LyricPageInfo = () => {
 	}
 
 	const info = getCurrentPlayingInfo();
+	const songDetailRequest = requestPlayingSongDetail(info.songId);
+	if (songDetailRequest) {
+		void songDetailRequest.then((songDetail) => {
+			if (songDetail && normalizeText(getPlayingSongId()) === info.songId) {
+				scheduleV3LyricPageInfoUpdate();
+			}
+		});
+	}
 	const headerName = page.querySelector('.g-singlec-hd .wrap .name');
 	const headerLyric = page.querySelector('.g-singlec-hd .wrap .lyric');
 	const titleInner = page.querySelector('.title .name .name-inner');
@@ -2801,7 +2892,14 @@ const addSettingsMenu = async () => {
 		});
 
 		// 杂项
+		const songAliasDisplayMode = getOptionDom('#song-alias-display-mode');
 		const hideSongAliasName = getOptionDom('#hide-song-alias-name');
+		bindSelectGroupToClasses(
+			songAliasDisplayMode,
+			'alias-first',
+			(x) => `rnp-song-alias-display-${x}`,
+			() => scheduleV3LyricPageInfoUpdate()
+		);
 		bindCheckboxToClass(hideSongAliasName, 'hide-song-alias-name', false);
 
 		// 关于

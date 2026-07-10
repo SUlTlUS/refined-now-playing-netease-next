@@ -174,6 +174,31 @@ export const fetchLyricsBySongId = async (songId, { signal } = {}) => {
 	return response.json();
 };
 
+export const getSongDetailApiUrl = (songId) => {
+	const normalizedSongId = normalizeString(songId);
+	if (!/^\d+$/.test(normalizedSongId)) {
+		return '';
+	}
+
+	const domain = window?.APP_CONF?.domain ?? 'https://music.163.com';
+	return `${domain}/api/song/detail/?id=${normalizedSongId}&ids=${encodeURIComponent(`[${normalizedSongId}]`)}`;
+};
+
+export const fetchSongDetailBySongId = async (songId, { signal } = {}) => {
+	const songDetailApiUrl = getSongDetailApiUrl(songId);
+	if (!songDetailApiUrl) {
+		return null;
+	}
+
+	const response = await fetch(songDetailApiUrl, { signal });
+	if (!response.ok) {
+		throw new Error(`Failed to fetch song detail: ${response.status} ${response.statusText}`);
+	}
+
+	const payload = await response.json();
+	return payload?.songs?.[0] ?? null;
+};
+
 const getDirectPlayerButton = () => (
 	document.querySelector(AMLL_PLAYER_BUTTON_SELECTOR)
 	|| document.querySelector(V3_PLAY_BUTTON_SELECTOR)
