@@ -106,3 +106,7 @@ typings/
 # IDE and development tool directories
 .vs/
 .workbuddy/
+
+# Local development tool data
+.codegraph/
+.playwright-cli/
