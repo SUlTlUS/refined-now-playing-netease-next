@@ -151,17 +151,27 @@ export const getPlayingSongId = () => {
 	return '';
 };
 
-export const getLyricApiUrl = (songId) => {
+export const getLyricApiUrl = (songId, { cloud = false, userId = '' } = {}) => {
 	const normalizedSongId = normalizeString(songId);
 	if (!normalizedSongId) {
 		return '';
 	}
 
-	return `${window?.APP_CONF?.domain ?? 'https://music.163.com'}/api/song/lyric/v1?tv=0&lv=0&rv=0&kv=0&yv=0&ytv=0&yrv=0&cp=false&id=${normalizedSongId}`;
+	const domain = window?.APP_CONF?.domain ?? 'https://music.163.com';
+	if (cloud) {
+		const params = new URLSearchParams({ songId: normalizedSongId, userId: normalizeString(userId), lv: '-1', kv: '-1' });
+		return `${domain}/api/cloud/lyric/get?${params}`;
+	}
+	return `${domain}/api/song/lyric/v1?tv=0&lv=0&rv=0&kv=0&yv=0&ytv=0&yrv=0&cp=false&id=${normalizedSongId}`;
 };
 
 export const fetchLyricsBySongId = async (songId, { signal } = {}) => {
-	const lyricApiUrl = getLyricApiUrl(songId);
+	const playing = getPlayingState();
+	const currentSongRequested = normalizeString(songId) === getPlayingSongId() || normalizeString(songId) === normalizeString(playing?.onlineResourceId);
+	const cloud = currentSongRequested && (
+		Number(playing?.curPlaying?.track?.songType ?? playing?.curTrack?.songType) === 1 || playing?.resourceIsCloudSong === true
+	);
+	const lyricApiUrl = getLyricApiUrl(songId, { cloud, userId: getNCMStore()?.getState()?.host?.uid });
 	if (!lyricApiUrl) {
 		return null;
 	}
@@ -171,7 +181,18 @@ export const fetchLyricsBySongId = async (songId, { signal } = {}) => {
 		throw new Error(`Failed to fetch lyrics: ${response.status} ${response.statusText}`);
 	}
 
-	return response.json();
+	const lyrics = await response.json();
+	if (!cloud) {
+		return lyrics;
+	}
+	// Cloud uploads return plain LRC strings, unlike the regular lyric API.
+	const normalized = { ...lyrics, source: { name: '网易云音乐网盘' } };
+	for (const key of ['lrc', 'yrc', 'tlyric', 'ytlrc', 'ttlrc', 'romalrc', 'yromalrc']) {
+		if (typeof normalized[key] === 'string') {
+			normalized[key] = { lyric: normalized[key] };
+		}
+	}
+	return normalized;
 };
 
 export const getSongDetailApiUrl = (songId) => {

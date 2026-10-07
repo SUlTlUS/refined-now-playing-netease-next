@@ -3,7 +3,8 @@
 
 import { parseLyric } from './liblyric/index.ts';
 import { cyrb53 } from './utils.js';
-import { appendRegisterCall, fetchLyricsBySongId, getPlayingSongId } from './ncm-compat.js';
+import { appendRegisterCall, fetchLyricsBySongId, getNCMStore, getPlayingSongId } from './ncm-compat.js';
+import './local-lyrics.js';
 
 const preProcessLyrics = (lyrics) => {
 	if (!lyrics) return null;
@@ -272,8 +273,12 @@ const refreshLyricsFromCurrentSong = async (songID = getPlayingSongId(), { force
 	lyricFetchAbortController = abortController;
 
 	try {
-		const rawLyrics = await fetchLyricsBySongId(resolvedSongId, { signal: abortController.signal });
-		if (abortController.signal.aborted || !rawLyrics) {
+		const rawLyrics = await window.rnpLocalLyricsBridge.fetchLyrics(
+			resolvedSongId,
+			{ signal: abortController.signal },
+			fetchLyricsBySongId
+		);
+		if (abortController.signal.aborted || !rawLyrics || getPlayingSongId() !== resolvedSongId) {
 			return;
 		}
 
@@ -296,6 +301,36 @@ appendRegisterCall('Load', 'audioplayer', () => {
 	scheduleLyricsRefresh();
 });
 
-setTimeout(() => {
-	scheduleLyricsRefresh(0, true);
-}, 0);
+// The React store and restored playback can become ready after this module loads.
+// Native audio Load events alone do not cover startup or every playlist switch.
+const attachLyricsStore = () => {
+	const store = getNCMStore();
+	if (!store) return false;
+	let previousIdentity = '';
+	const update = () => {
+		const state = store.getState();
+		const playing = state?.playing;
+		const identity = JSON.stringify([
+			getPlayingSongId(), playing?.trackFileType, playing?.onlineResourceId,
+			playing?.curPlaying?.localTrack?.filename,
+			playing?.curPlaying?.track?.songType ?? playing?.curTrack?.songType,
+			playing?.resourceIsCloudSong, state?.host?.uid,
+		]);
+		if (identity === previousIdentity) return;
+		previousIdentity = identity;
+		lyricFetchAbortController?.abort();
+		scheduleLyricsRefresh(120, true);
+	};
+	store.subscribe(update);
+	update();
+	return true;
+};
+
+if (!attachLyricsStore()) {
+	let attempts = 0;
+	const timer = setInterval(() => {
+		if (attachLyricsStore() || ++attempts >= 40) clearInterval(timer);
+	}, 500);
+}
+
+window.addEventListener('rnp-lyric-page-opened', () => scheduleLyricsRefresh(0, true));

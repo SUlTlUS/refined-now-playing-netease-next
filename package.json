@@ -15,6 +15,7 @@
     "sass": "^1.52.3",
     "sass-loader": "^13.0.0",
     "style-loader": "^3.3.1",
+    "terser-webpack-plugin": "^5.3.14",
     "ts-loader": "^9.4.2",
     "typescript": "^4.9.5",
     "webpack": "^5.75.0",
@@ -26,6 +27,7 @@
   "description": "RefinedNowPlaying",
   "name": "refined-now-playing",
   "scripts": {
+    "test:local-lyrics": "node --test tests/local-lyrics.cjs",
     "build": "webpack --mode=production --node-env=production",
     "build:dev": "webpack --mode=development",
     "build:prod": "webpack --mode=production --node-env=production",
